@@ -1,0 +1,2271 @@
+/*  $Id: Changelog,v 1.319 2010/08/20 15:33:42 ptsarenko Exp $  */
+
+/* Use this format for the entry headers:
+   YYYY-MM-DD HH:MM UTC[-|+]hhmm Your Full Name <your_email@address>
+   For example:
+   2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
+*/
+
+2010-08-20 18:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * fixed small incompatibility in OrdKeyVal()
+
+2010-08-20 13:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * Unnecessary code has been removed from leto_Skip()
+
+2010-08-20 13:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! letoOpen() fixed
+    * letoOrderListAdd() - leto_ParseRec() is called if the record is returned by server
+      for compatibility with previous server versions
+  * source/server/letofunc.c
+    ! hb_retcAdopt() is replaced by hb_retc_buffer() for compatibility
+  * source/server/server.prg
+    ! #include hbhrb.ch is removed
+
+2010-08-19 19:40 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/letocdp.ch
+    * removed HB_CODEPAGE_HR437 codepage
+  * source/client/leto1.c
+    ! fixed letoAppend() for readonly mode
+  * source/client/letomgmn.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * added parameter check in LETO_CONNECT() function
+    + added LETO_ALIAS( nUserStru, cClientAlias ) --> cRealAlias
+      function. This function can be used in the UDF function at
+      the server side.
+    + added LETO_UDF( cSeverFunc, cParam ) --> cResult function.
+      This function is called from client application. A string
+      <cServerFunc> contains a server connection string and name
+      of udf function:
+      //ip_address:port/funcname
+      A <funcname> function should be defined on the letodb server.
+      The first parameter of udf function is nUserStru, the second
+      parameter (optional) - character string cParam, received from the
+      client. Udf function can return  result (character string) to client.
+    + added support for letoudf.hrb files on the server. If letoudf.hrb
+      file exist at the letodb/bin folder, it's loaded by server. The
+      udf functions can be implemented in the letoudf.hrb file.
+
+2010-08-13 19:40 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/letomgmn.c
+  * source/server/letoacc.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+  + include/letocdp.ch
+  * Readme.txt
+  * readme_rus.txt
+    * SkipBuf value is limited only for non shared server mode 
+    + LETO_MEMOREAD function has been implemented
+    * after OrdListAdd() operation the current record in moved to first
+      record on current (first) index. The server protocol has been changed.
+    * codepages request is moved to separate file letocdp.ch. If __HB_EXT_CDP__
+      define is declared, standart harbour hbextcdp.ch is used.
+
+2010-07-30 13:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Fix in leto_GetValue(), provided by Pavel Tsarenko
+
+2010-07-17 20:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+  * source/server/letofunc.c
+    ! fixed compilation for xHarbour
+
+2010-07-15 22:45 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+    ! fixed compilation for xHarbour
+
+2010-07-13 21:15 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * removed codepage translation for blob field types
+
+2010-07-13 14:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/server.prg
+    * Added support of 'ADDITIVE" to index creation
+
+2010-07-12 23:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+    ! fixed compilation for Harbour
+
+2010-07-12 19:10 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    + added support for HB_FT_BLOB, HB_FT_PICTURE and HB_FT_OLE field types
+
+2010-07-12 17:25 UTC+0300 Alexander Okhotnikov (alxokhotnikov/at/gmail.com)
+  * source/server/letofunc.c
+    ! Bug fixed (SET FILTER): The filter more than 256 symbols - as the removal of the filter
+
+2010-07-09 21:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Bug fixed in letoOrderCreate(), which caused application or server crash.
+
+2010-07-09 19:10 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * formatting
+    * added control SkipBuf value to RecCount limit
+    * changed format in leto_Sum
+
+2010-07-09 13:48 UTC+0300 Alexander Okhotnikov (alxokhotnikov/at/gmail.com)
+  * source/server/leto_2.c
+  * source/server/letocore.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! small fix
+    * warnings
+    * Cache_Records (letodb.ini) - the number of records to read into the cache
+
+2010-07-07 21:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/server/letofunc.c
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+  * Readme.txt
+  * readme_rus.txt
+    * Now the user rights are transfered from the server while the connection.
+      They can be retrieved by the new leto_UserGetRights() function.
+
+2010-07-07 20:20 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+    ! fix in hs_opentable(): is table already is opened, it's need go top
+
+2010-07-02 18:40 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * fix for compatibility with old Harbour versions
+
+2010-07-01 22:20 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed leto_Sum()
+  * source/client/leto1.c
+    ! fixed letoSeek() for non optimized client filters, please check it
+
+2010-06-30 20:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+  * source/client/letomgmn.c
+  * utils/manager/manage.prg
+    + added amount of used memory by server as 16 and 17 elements of
+      LETO_MGGETINFO() function. Server should be built with memory
+      statistic info (fmstat)
+  * include/rddleto.h
+  * source/client/leto1.c
+    + added Harbour version info into LETOCONNECTION. On client side
+      Leto_GetServerVersion([<lHarbourVer>]) with parameter return
+      Harbour version string
+
+2010-06-29 20:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed memory leak
+
+2010-06-27 19:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * skip buffer is cleared in OrdSetFocus()
+    * support for array of locked records on client is completed 
+    + added dbInfo(DBI_GETLOCKARRAY)
+
+2010-06-26 12:20 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    ! skip buffer is cleared now in lock/unlock operations
+  * include/srvleto.h
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * client alias has been added into AREASTRU
+
+2010-06-24 20:20 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+  * common/hbip.c
+    ! fixed bug in hb_ipclose()  
+  * source/server/letofunc.c
+  * source/server/leto_2.c
+    ! small fix with external leto_runFunc
+    * memory leak in pAStru->itmFltExpr release
+  * source/server/server.prg
+  * source/server/errorsys.prg
+    * ErrorStr() and ErrorMessage() simplified
+  * source/client/leto1.c
+  * include/rddleto.h
+    * fixed memory leak in leto_PutRec()
+    + initial support for locked records on client
+
+2010-06-21 12:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Small fix
+
+2010-06-20 21:15 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed compilation for Harbour in hb_macroGetType() call
+
+2010-06-20 09:40 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+  * source/server/letofunc.c
+  * source/server/letocore.c
+  * source/server/leto_2.c
+    * warnings
+    * ParseCommand() and leto_runFunc() moved from letocore.c/leto_2.c
+      to letofunc.c
+    * hs_sum(), hs_checkexpr(), IndexInfo(), hs_setfilter() has been converted
+      to C level
+    * leto_findtable(), leto_inittable(), leto_initarea(), leto_getdriver()
+      separated to 2 function to call from C
+
+2010-06-15 13:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * Initial Set's separated to a function hs_InitSet() to be possible to call them
+      from additional threads.
+  + source/server/leto_2.c
+    + New core file, based on Harbour mt implementation, has been added. For now it uses
+      the same scheme and functionality as the letocore.c.
+
+2010-06-15 13:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * leto_GetAppOptions() has been added to eliminate usage of HApp variables
+      in prg level functions.
+
+2010-06-15 13:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * leto_SetAppOptions() changed a bit, new parameter - nDriver - has been added.
+
+2010-06-14 20:20 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  + source/utils/letotray.prg
+    + added sample utility for start/stop letodb server under windows
+      It's should be compiled with hwgui library
+  * source/client/leto1.c
+    ! fixed dbRLock(<nRec>), if nRec is not equal with current record
+  * source/server/letofunc.c
+    * changed error handling for "lock required" error
+  * source/server/server.prg
+    * fixed minor typo
+
+2010-06-10 20:50 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/letomgmn.c
+  * source/server/letofunc.c
+    * LETO_FRENAME(), LETO_FERASE() now can use the default connection, and
+      small changes with 2nd parameter of LETO_FRENAME evaluation
+
+2010-06-10 17:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Bug fixed in relations support
+
+2010-06-10 16:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/hbip.c
+    * #include of threads headers has been added - maybe, it's helpful for mt safe sockets.
+  * source/server/letofunc.c
+  * source/server/letocore.c
+    * Some logic to exit threads has been added.
+
+2010-06-10 12:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Bug fixed in leto_intro()
+
+2010-06-10 09:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + source/server/letocore.c
+  * source/server/letofunc.c
+  * letodb.hbp
+  * Makefile.linux
+  * makefile.bc
+  * makefile.vc
+  * makefile.gcc
+    * The letofunc.c has been splitted to 2 files: letocore.c - the kernel of the
+      server ( initialization, threads manage, connections accepting ) and
+      letofunc.c - the set of function, which provides server functionality.
+      This separation of a cernel is made to make it more convenient to experiment
+      with other cernel implementations.
+
+2010-06-08 12:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * source/server/letovars.c
+  * include/rddleto.ch
+    ! Few fixes for variables support
+
+2010-06-08 11:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Now after calling hb_ipRecv() the return value is checked; this, probably,
+      will help to fix some problems with threads cooperation.
+
+2010-06-07 15:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letovars.c
+    ! Few fixes
+
+2010-06-05 14:10 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+  * source/client/leto1.c
+  * Readme.txt
+  * readme_rus.txt
+    * leto_sum has been extended: now it can evaluate comma separated fields
+      as first parameter:
+      leto_sum("Sum1,Sum2", cFilter, cScopeTop, cScopeBottom) return
+      an array with values of sum fields Sum1 and Sum2.
+
+      If "#" symbol passed as field name, leto_sum returns a count of
+      evaluated records, f.e:
+      leto_sum("Sum1,Sum2,#", cFilter, cScopeTop, cScopeBottom) -->
+      {nSum1, nSum2, nCount}
+
+      If only one field name is passed, leto_sum() returns a numeric value
+
+2010-06-04 08:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/srvleto.h
+    * New item in USERSTRU
+
+2010-06-03 20:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! fixed bug, related with codepage set in intro command and
+      use/create operations
+  * utils/manager/bld.bat
+    * added missing libraries for xharbour
+
+2010-06-03 14:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/letovars.c
+    * Further changes for variables support
+
+2010-06-03 10:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/hbip.c
+    ! An important fix, which, if it is really correct, will prevent many sitations
+      with server crash.
+
+2010-06-02 23:20 UTC+0300 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/server/letofunc.c
+  * source/common/hbip.c
+    * Fix GPF (network)
+
+2010-06-02 15:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * source/server/letovars.c
+  * include/rddleto.ch
+    * Some further changes for variables support
+
+2010-06-02 14:33 UTC+0300 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/server/letofunc.c
+    * small fixes
+
+2010-06-02 12:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Bug fixed
+
+2010-06-02 10:50 UTC+0300 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+    * small fixes
+
+2010-06-02 10:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Small fix for broken records
+
+2010-06-02 00:07 UTC+0300 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/common/common_c.c
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    ! Fix GPF: fields > 255
+
+2010-06-01 16:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * source/server/letovars.c
+  * source/server/letofunc.c
+    * Some changes for "Own" variables support
+
+2010-06-01 16:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * source/server/letovars.c
+  * include/rddleto.ch
+  * include/srvleto.h
+    * Few protocol changes, necessary for farther extensions
+
+2010-06-01 13:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/client/leto1.c
+  * include/rddleto.h
+    * New function added - leto_CloseAll( [cPath] ), it is recommended instead of
+      dbCloseAll(), because it uses only one call to server, while dbCloseAll() calls
+      the server for every opened area.
+
+2010-06-01 13:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * source/server/letovars.c
+  * tests/test_var.prg
+  * readme_rus.txt
+  * readme.txt
+    * leto_varGetList() has been extended - second optional parameter nMaxLen
+       has been added. If it is used, the function returns names and values of
+       variables, values are limited to nMaxLen characters.
+
+2010-05-31 11:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/manage.prg
+    ! Small fixes
+
+2010-05-28 22:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    * small fix
+  * source/server/server.prg
+    * reverted last changes for compatibility with harbour
+
+2010-05-28 18:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+    * changed ERRCODE declaration for older xharbour versions
+  * source/server/letofunc.c
+    * fix for compatibility with older xHarbour versions
+  * source/server/server.prg
+  * source/client/leto1.c
+    * changed error handling for open/create operations: error genCode,
+      subCode, osCode and FileName is passed from server to client
+
+2010-05-27 21:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  + readme_rus.txt
+    + added russian documentation
+
+2010-05-27 12:55 UTC+0400 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/client/letomgmn.c
+    ! Fixed memory size, allocated for LETO_MGGETTABLES(), LETO_MGGETUSERS(),
+          LETO_MGGETINFO() functions - GPF
+  * source/server/server.prg
+    * small fix (If the table cannot be opened in exclusive access (Share_Tables=0)
+          and have transferred a flag "only for reading" opening attempt in a mode
+          only for reading repeats)
+  * Readme.txt
+    * small fix: Logfile -> Log
+
+2010-05-27 09:43 UTC+0400 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! fix OrdKeyGoto (relations)
+    + added support for dbOrerInfo(DBOI_SKIPUNIQUE,...) and OrdSkipUnique()
+
+2010-05-26 15:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/srvleto.h
+  * source/server/letovars.c
+  * source/server/letofunc.c
+    * Some changes in variables handling
+
+2010-05-26 10:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Small fix to previous change
+
+2010-05-26 10:14 UTC+0400 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * Fixes for compatibility with older Harbour versions and xHarbour
+
+2010-05-25 18:04 UTC+0400 Alexander Okhotniov (alxokhotnikov/at/gmail.com)
+  * source/client/leto1.c
+    ! Some fixes for relations (dbskip(0), dbappend(), RECNO(), locks)
+    ! Fix for set filter (national symbols)
+    * HB_LONG -> HB_MAXINT
+  * source/server/letofunc.c
+    ! Few fixes
+    * HB_LONG -> HB_MAXINT
+    * warnings
+
+2010-05-25 11:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Some fixes for relations
+  * source/server/letofunc.c
+    ! Few fixes
+  * source/common/hbip.c
+    * inet_ntoa() call is replaced by mt safe code.
+
+2010-05-06 10:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * make_mingw.bat
+  * makefile.gcc
+    ! Some fixes
+
+2010-04-27 17:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+    ! Reverted last fix
+
+2010-04-27 14:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + tests/test_var.prg
+    + Sample of using shared variables 
+  * Readme.txt
+    A bit more info about shared variables.
+
+2010-04-27 14:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+    ! Compatibility fix.
+
+2010-04-27 13:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * include/srvleto.h
+  * include/rddleto.h
+  * include/rddleto.ch
+  * source/client/letomgmn.c
+    + set of functions to support shared variables has been added:
+      LETO_VARSET( cGroupName, cVarName, xValue[, nFlags[, @xRetValue]] ) --> lSuccess
+      LETO_VARGET( cGroupName, cVarName )                  --> xValue
+      LETO_VARINCR( cGroupName, cVarName )                 --> nValue
+      LETO_VARDECR( cGroupName, cVarName )                 --> nValue
+      LETO_VARDEL( cGroupName, cVarName )                  --> lSuccess
+      LETO_VARGETLIST( [cGroupName] )                      --> aList
+  * source/server/letofunc.c
+  * source/server/letoacc.c
+  * source/server/server.prg
+  + source/server/letovars.c
+    * support of shared variables has been added
+  * letodb.hbp
+  * Makefile.linux
+  * makefile.bc
+  * makefile.vc
+  * makefile.gcc
+  * Readme.txt
+
+2010-04-15 16:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Fix for leto_Scope() function
+
+2010-02-12 13:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! letoOrderCreate() has been fixed - there was problems, if the tag name is absent
+      in a call of ordCreate()
+
+2010-02-04 14:02 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/manage.prg
+    ! Small fix
+
+2010-02-04 11:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Small fix in UpdateRec()
+  * source/client/leto1.c
+  * Readme.txt
+    * New function added: leto_SetFastAppend(), it sets the append mode, which existed
+      before 2009-10-18 13:30 UTC+0300 Pavel Tsarenko.
+      If the fast append is set ( by default, it isn't ), the APPEND operation is evaluated
+      on the server not immedeately, but together with following REPLACE operations.
+
+2009-01-30 21:40 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/letomgmn.c
+  * source/server/letofunc.c
+  * Readme.txt
+    + added LETO_MGGETTIME function. It's return array with server date
+      and time (seconds after midnight): {dDate, nSeconds}
+
+2010-01-21 13:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! letoKeyToStr() has been fixed.
+
+2010-01-21 13:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Yet another fix for compatibility with Harbour 2.0
+  * source/common/hbip.c
+    ! Small type fix
+  * Makefile.linux
+    * Minor formatting
+  * utils/manager/bld.bat
+  * utils/manager/console.prg
+  * utils/manager/manage.prg
+    * Path to rddleto.ch has been changed
+  Thanks for the tips to Przemyslaw Czerpak.
+
+2010-01-20 16:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/common/net.c
+    ! Yet another fixes for compatibility with Harbour 2.0
+
+2010-01-15 14:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * include/srvleto.h
+  * source/server/errint.c
+  * source/server/letofunc.c
+  * source/common/hbip.c
+  * source/common/net.c
+  * source/common/common_c.c
+  * source/client/leto1.c
+    ! Fixes for compatibility with Harbour 2.0
+
+2010-01-14 13:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * readme.txt
+    * Info about leto_getLocalIP() has been added.
+
+2010-01-14 13:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/errint.c
+  * source/server/server.prg
+    ! Fixes for compatibility with older Harbour versions
+  * source/common/hbip.c
+  * source/client/letomgmn.c
+    * Function added: leto_getLocalIP(), which returns client side IP for connection
+      with letodb server.
+
+2009-12-31 11:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/errint.c
+    * changed ULONG ulIntCode to HB_ERRCODE errCode in hb_errInternal and
+      hb_errInternalRaw for Harbour
+
+2009-11-16 18:15 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    ! fixed DBOI_NUMBER with incorrect argument
+
+2009-10-29 19:25 UTC+0300 Alexandr Okhotnikov (alxokhotnikov/at/gmail.com)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    *  Increased the initial allocation of memory (the tables and users)
+       (for tables - memory reallocation leads to falling letoDB)
+    * Little optimization and correction of the blocking of records on the server
+    * Mode "Share_Tables": fixed crash letoDB, the disappearance of record
+       locks (DBRUNLOCK was performed for all connections)
+    * Simultaneous launch of client parts led to the fall letoDB
+    * DbAppend(.F.) processed incorrectly (previous locks removed)
+
+2009-10-20 20:45 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * Makefile.linux
+  * letodb.hbp
+  * source/client/leto1.c
+  * source/common/hbip.c
+  * utils/manager/console.prg
+  * utils/manager/manage.prg
+    * changes for compatibility with the latest Harbour SVN,
+      provided by Przemyslaw Czerpak
+
+2009-10-18 13:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+    ! minor fix in #define
+  * include/funcleto.h
+    * fixes for compatibility with xHarbour CVS
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * some changes, provided by Alexandr Okhotnikov, a big thanks to him:
+      DbAppend() immediately evaluated on server, and added check to FLock()
+      by another user;
+      DbRecordInfo(DBRI_LOCKED, nRecNo) - added nRecNo evaluation
+      fixed DbOrderInfo() if index is absent;
+      added OrdCount() evaluation;
+      fixed locks (dbrlock, flock) handling to take into account FLock()
+      by another user;
+      fixed scoped in dbSeek, DbGOTOP, DbGoBottom;
+      added OrdKeyGoto() evaluation
+
+2009-07-29 16:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * more codepages has been included - based on advice of Viktor Szakats
+
+2009-07-29 15:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * letodb.hbp
+  * source/server/server.prg
+    ! Few fixes, provided by Viktor Szakats
+    ! Fix to the previous entry ( * fix for old xHarbour version )
+
+2009-07-12 13:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+    * change for _POSIX_PATH_MAX #define
+  * source/server/server.prg
+    * fix for old xHarbour version
+
+2009-07-03 11:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Bug fixed, reported by Abdyvasiev Askar. Recno() returned 0 after APPEND BLANK.
+
+2009-07-02 14:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * include/srvleto.h
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+  * source/common/blowfish.c
+  * source/common/common_c.c
+  * source/common/hbip.c
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+  * source/server/letoacc.c
+  * source/server/letofunc.c
+  * utils/manager/console.prg
+    ! A lot of warnings fixes, provided by Przemyslaw Czerpak
+
+2009-07-01 11:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * Some changes to provide compatibility with the latest Harbour
+
+2009-06-30 12:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Increased buffer size for seek
+  * source/server/server.prg
+    ! Bug fixed in hs_openindex()
+
+2009-06-29 16:08 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * hb_itemPutCPtr() -> hb_itemPutCLPtr() to be compatible with the latest
+      Harbour code.
+
+2009-06-18 22:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * SHARE_TABLES is set to 1 if NO_SAVE_WA is 1
+
+2009-06-18 10:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * New experimental mode has been added, it can be set by adding an option in
+      letodb.ini: NO_SAVE_WA = 1. When this mode is set, each dbUseArea() will cause
+      a real file open operation and creating a new workarea on the server ( in default
+      mode each file is opened only one time and have only one real workarea for all users ).
+      Theoretically this new mode may increase the speed in case of a big number of active
+      users. It isn't properly tested yet, so for production use default mode is recommended.
+
+2009-06-15 10:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Bug fixed in letoSetFilter()
+
+2009-06-11 14:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Readme.txt
+    * Added functions list.
+
+2009-06-11 13:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/errorsys.prg
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Now letodb can work in coexistence with other types of applications - you just
+      need to set new option in letodb.ini: SHARE_TABLES = 1.
+      In this case tables are opened in the same mode as client applications
+      opens them, exclusive or shared. In default mode tables are opened in
+      exclusive mode to increase the speed.
+    * C level RT errors handling on C level has been implemented - this allows to avoid
+      server down in case of such kind of error ( they shouldn't appear, but ... )
+  * Readme.txt
+    * Added info about SHARE_TABLES option
+
+2009-06-05 18:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Readme.txt
+    ! Minor fix.
+
+2009-06-05 17:58 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Readme.txt
+  * letodb.hbp
+  * source/client/rddsys.prg
+  * tests/test_ta.prg
+    * Few other modifications, provided by Viktor Szakats
+
+2009-06-05 17:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Readme.txt
+    * Build info has been updated.
+  * source/client/leto1.c
+    ! Warning ( MSVC 64b ) has been fixed ( thanks to Viktor Szakats )
+  * source/server/server.prg
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+    * It is possible now to run few instances of letodb server on the same
+      computer, using different ports.
+
+2009-06-05 14:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * letodb.hbp
+  * rddleto.hbp
+    ! Few fixes, provided by Viktor Szakats
+  * Readme.txt
+  * readme_pt_br.txt
+    * Few modifications
+
+2009-06-05 10:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + rddleto.hbc
+    + File, provided by Viktor Szakats, to simplify compiling client app with hbmk:
+      hbmk2 ..\rddleto.hbc test_ta.prg
+  * source/client/leto1.c
+    ! MSVC compile errors fixed.
+  * source/server/server.prg
+    * Cleaned and formatted.
+
+2009-06-04 16:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letoacc.c
+    ! Warnings fixed
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Prg level HSArea class and HSAREA objects handling in C code has been removed.
+
+2009-06-04 10:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+    * Now it isn't needed to set/unset any #define in funcleto.h - thanks for the tips
+      to Viktor Szakats and Przemyslaw Czerpak.
+  * Readme.txt
+    * Changes accordingly the above in funcleto.h.
+
+2009-06-03 13:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+    * Now it isn't needed to set/unset HARBOUR_VER_AFTER_101
+  * letodb.hbp
+  * rddleto.hbp
+  * Readme.txt
+    * Changes accordingly the above in funcleto.h.
+
+2009-06-01 15:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/server/letofunc.c
+    * version number has been changed to "0.9"
+  * makefile.gcc
+    * XHARBOUR variable has been added
+  * Readme.txt
+    * Added info about Mingw and hbmk
+  * Whatsnew.txt
+    * Added info about build 8
+
+2009-06-01 11:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + letodb.hbp
+  + rddleto.hbp
+    + Configuration files for hbmk has been added ( provided by Viktor Szakats )
+
+2009-05-29 15:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * source/server/errint.c
+  * source/server/letoacc.c
+  * source/server/letofunc.c
+    ! Few warnings fixed.
+
+2009-05-29 13:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + source/server/errint.c
+    * hb_errInternal() has been added as a separate module to be more clean.
+  * source/server/letofunc.c
+    * Changed due to separating of hb_errInternal()
+  * makefile.bc
+  * makefile.vc
+  * Makefile.linux
+  * make_xhb.bat
+    * Changed to compile new file errint.c
+  + make_mingw.bat
+  + makefile.gcc
+    + Added files to build letodb with Mingw.
+
+2009-05-28 10:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+    * C level function leto_CloseMemArea() has been added
+  * source/server/letofunc.c
+    * hb_errInternal() now closes all opened tables and the MemArea in case of crash.
+  * utils/manager/console.prg
+  * utils/manager/manage.prg
+    * Info about transactions number has been added
+
+2009-05-26 16:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * hb_errInternal() overloaded to save additional info in case of server crash -
+      it will looged to letodb_crash.log.
+
+2009-05-26 14:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! Fixed yet another problem with replacing memo fields while transaction.
+
+2009-05-26 09:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Added a leto_writelog() call to LETO_COMMITTRANSACTION() failure branch for
+      debugging purposes.
+
+2009-05-20 14:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+    ! leto_disconnect() has been fixed - current connection pointer is cleaned now.
+
+2009-05-15 21:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! hs_OrderInfo() has been fixed - someone posted a code, incompatible with
+      Harbour.
+
+2009-05-12 09:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! Fixed problem with replacing memo fields while transaction.
+    * Added new statistical info - number of transactions processed and (including)
+      number of rejected.
+  * source/client/letomgmn.c
+    * Updated leto_mggetInfo() to receive new statisctical info.
+
+2009-05-06 12:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * leto_writelog() call commented
+
+2009-05-06 08:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Critical bug has been fixed, it could appear while skipping back, updating and
+      skipping forward.
+
+2009-04-28 14:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * More statistical information is gathered now and passed in response to management
+      calls.
+  * source/client/letomgmn.c
+    * leto_mggetinfo() has been changed to receive new info
+  * utils/manager/console.prg
+  * utils/manager/manage.prg
+    * Changes to show additional information.
+    The maximum waiting time is calculated now for a day. Additionally an average
+    value of this time for a last minute is calculated and passed.
+    Manage.prg calculates and shows some additional info - the values of
+    number of operations, kilobytes sent and read for a last minute.
+
+2009-04-27 13:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Checking of filter expression is much more smart now. The function
+      leto_parsefilter() scans the expression, divides it into tokens, separated by
+      .and., .or., and checks every of them.
+
+2009-04-24 13:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * leto_IsFltOptim() function has been added, it returns .T., if the filter
+      for a current workarea is evaluated on the server.
+  * utils/manager/manage.prg
+    ! ReadOptions() has been fixed
+
+2009-04-22 11:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Makefile.linux
+  * makefile.vc
+  * make_xhb.bat
+    * Makefiles has been updated.
+
+2009-04-22 11:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * whatsnew.txt
+    * Added information about a new build.
+
+2009-04-22 10:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + readme_pt_br.txt
+    + readme on Portuguese has been added - provided by Leonardo Machado.
+
+2009-04-21 09:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * readme.txt
+    * Added more info.
+
+2009-04-20 16:48 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! hs_openindex() and hs_createindex() has been fixed
+
+2009-04-18 18:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! Yet another fix for xHarbour - thanks to Leonardo Machado.
+  * utils/manager/manage.prg
+    ! Small fix
+
+2009-04-15 15:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! Some fixes for compatibility with recent xHarbour releases
+
+2009-04-13 11:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/bld.bat
+  * utils/manager/manage.prg
+    ! Small modifications to make it compatible with current HwGUI code.
+
+2009-04-09 10:24 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/letoacc.c
+    * Memos now goes encrypted, too, if CRYPT_TRAFFIC=1 is set.
+    * Accounts changes are flushed to the file now while server's exit procedure.
+
+2009-04-08 16:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/console.prg
+    * Console management utility has been updated due to recent changes, admin
+      functions ( users management ) has been added.
+
+2009-04-06 20:09 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * source/server/letofunc.c
+    ! Yet another fixes for compatibility with Harbour's 1.01 release
+
+2009-04-06 11:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+  * makefile.bc
+  * make_b32.bat
+  * make_linux.sh
+  * Makefile.linux
+    ! Yet another fixes to provide compatibility with different Harbour versions. Now,
+      instead of editing make_b32.bat, you may need to edit the include/funcleto.h:
+         uncomment the "#define HARBOUR_VER_BEFORE_100" line, if you use any Harbour
+            version, released before 1.00;
+         uncomment the "#define HARBOUR_VER_AFTER_101" line, if you use a Harbour
+            version from SVN, which you get after 1.01;
+         change nothing, if you use official release 1.00, 1.01.
+         Ufff... :)
+    ! Some important fixes for Linux server.
+
+2009-04-02 14:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * include/rddleto.h
+  * source/common/common_c.c
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/letoacc.c
+  * source/server/server.prg
+  * makefile.bc
+  * make_b32.bat
+  * make_linux.sh
+  * Makefile.linux
+    ! Some fixes for Harbour. If you use Harbour version from SVN or any other, which
+      was compiled after 1.01, you need to uncomment the line "set HARBOUR_VER_AFTER_101=ON"
+      in the make_b32.bat or make_linux.sh.
+  * Traffic encryption has been partially implemented. To turn it on, you need to add a line
+      CRYPT_TRAFFIC=1
+    to the server's ini file.
+
+2009-03-31 10:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+    * Declarations of encryption functions has been added
+      LETO_PASSWORD definition has been added, it designates an encryption key,
+      which is used by both client and server side.
+  * include/rddleto.h
+    * LETOAREA: USHORT uiRecInBuf has been added, it designates a relative
+                current record position in a pBuffer.
+      LETOCONNECTION: a size of szVersion has been increased,
+                      cDopcode has been added, it keeps an additional 2-char code from
+                      the server, which is included in an encryption key.     
+  + include/rddleto.ch
+    + Connection error codes.
+
+  * source/common/common_c.c
+    leto_byte2hexchar(), leto_hexchar2byte() function has been added.
+  + source/common/blowfish.c
+    + encryption module has been added ( code is borrowed fron HwGUI ).
+
+  * source/client/leto1.c
+    * leto_skip() now allows to skip records in a backward direction in a buffer ( pBuffer )
+      to reduce using of server.
+    * leto_ConnectionNew() has been changed. It accepts additional encryption code from
+      server, passes username and password to server, if needed, sets connection error code.
+    * LETO_CONNECT_ERR() function has been added, it returns connection error code - look at
+      utils/manager/manage.prg for a sample.
+  * source/client/letomgmn.c
+    * LETO_CONNECT( cAddr [, cUser, cPassword] ) now passes username and password, if needed.
+    * Following functions has been added:
+      LETO_USERADD( cUser, cPassword [, cAccess] )
+      LETO_USERPASSWD( cUser, cPassword )
+      LETO_USERRIGHTS( cUser, cAccess )
+      LETO_USERFLUSH()
+    * Some changes in LETO_MGGETINFO(), LETO_MGGETUSERS() due to additional data, which
+      these functions accepts.
+
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * leto_mgmt() now passes some additional data. In a basic data array it is 12-th item,
+      maximum time of waiting for query execution. In a users list it is a value of a
+      time for which the user is inactive.
+    * added initial support for authentication subsystem.
+      server's ini file now can include these items:
+      PASS_FOR_LOGIN = 1 ( 0, if it is off ), if the server requires authentication 
+            to be logged in;
+      PASS_FOR_MANAGE = 1, if appropriate rights are necessary to use manage functions;
+      PASS_FOR_DATA = 1, if appropriate rights are necessary to have wright access.
+      PASS_FILE - a path and name of authentication file, by default it is "leto_users".
+  + source/server/letoacc.c
+    + structures and functions for username/password/access rights handling.
+
+  * utils/manager/manage.prg
+    * Updated due to other changes.
+
+  Some notes about authentication subsystem. To turn it on, you need to include in server's
+  ini file any of the above items ( PASS_FOR_... ). But before you need to create, at least,
+  one user with admin rights, because when authentication subsystem works, only authenticated
+  users with admin rights are able to add/change users and passwords. To add a user, you need
+  to include a call of LETO_USERADD() in your client side program, for example:
+
+  	LETO_USERADD( "admin", "secret:)", "YYY" )
+
+  where "YYY" is a string, which gives rights to admin, manage and write access.
+  To connect to server with an authentication data you need to use LETO_CONNECT() function.
+
+2009-02-05 12:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * source/common/common_c.c
+  * source/server/letofunc.c
+    ! Some fixes, which allows to compile letodb with previous Harbour distributions
+  * source/server/server.prg
+    ! A fix, which prevents server crash due to aliased filter expressions
+
+2009-01-07 14:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  fixes, provided by Diego M.Martin, a big thanks to him.
+  * source/client/leto1.c
+    ! fixed uiTag in letoOrderInfo() function when Tag is passed by its number
+    ! fixed DBOI_CUSTOM, DBOI_ISDESC, DBOI_UNIQUE in letoOrderInfo()
+    + added DBOI_KEYADD and DBOI_KEYDELETE parameters
+      (only works if IndexKey type is String)
+  * source/server/letofunc.c
+    * changes in leto_filef() function to be able to use an absolute path for files
+      (including drive unit) leaving empty 'Datapath=' field at server config file
+    * added setting of Scope before checking OrdKeyCount and OrdKeyNo in
+      leto_Ordfunc() function
+    + added leto_SetFilter function and leto_ClearFilter macros
+  * source/server/leto_win.c
+    * when multiple requests were send to the server, I think the server
+      couldn't answer them so quickly that it hung-up.
+
+2008-12-22 22:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/common/common_c.c
+  * source/common/hbhip.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+  * makefile.bc
+    * synced with Harbour SVN and xHarbour CVS
+
+2008-08-13 23:15 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * type cast
+  * source/client/letomgmn.c
+    ! small fix
+
+2008-08-07 19:45 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+  * source/server/letofunc.c
+  * include/rddleto.h
+    * pCurrentConn moved from letofunc.c to leto1.c. The default
+      connection now can be set by LETO_CONNECT() function for
+      USE and CREATE command
+    * If server name and port is skipped in file name in Leto_File()
+      function, the default connection is used
+    * LETO_MGGETINFO() function now return DataPath
+    + added leto_InTransaction() function
+    * skip buffer is used for dbSkip(-1) also
+    * hb_rddFlushAll() replaced witn SELF_FLUSH( ( AREAP ) pArea ) in
+      the flush command on server
+
+2008-07-15 12:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Fixed memory size, allocated for leto_rec() function - there were GPF's
+      in some cases.
+
+2008-07-14 11:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * re-committed
+
+2008-07-11 13:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/server.prg
+    * The forth parameter od dbCreate ( lKeepOPen ) works now.
+    * COPY TO command works now.
+
+2008-07-10 22:25 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed DBOI_SCOPETOPCLEAR and DBOI_SCOPEBOTTOMCLEAR evaluation
+      with empty key item
+
+2008-07-09 22:15 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * added bAppend parameter to letoSetBlankRecord() function, and
+      ulRecNo is cleared only for dbAppend()
+  * source/server/letofunc.c
+    ! fixed scope operations in leto_Skip()
+
+2008-07-09 19:45 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed compilation for Harbour
+
+2008-07-09 09:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Minor fix
+
+2008-07-08 22:15 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    ! fixed gpf in letoOrderListFocus() if incorrect order number is passed
+    * added check for already opened index bagname in letoOrderListAdd()
+
+2008-07-08 16:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Fix in letoPutMemoValue() function  
+  * source/server/letofunc.c
+  * source/common/hbip.c
+    ! Fixes for hpux, provided by Luiz Rafael Culik Guimaraes
+
+2008-07-07 04:10 UTC+0700 Andi Jahja <harbour/AT/cbn/net/id>
+   * source/server/letofunc.c
+     ! type casts
+
+2008-07-06 18:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! another fix for FLOCK()
+    * added DataPath to the second parameter in leto_FRename() 
+  * source/server/server.prg
+    * changes in hs_createindex() if index bagname has path
+
+2008-07-06 12:00 UTC+0700 Andi Jahja <harbour/AT/cbn/net/id>
+   * source/client/leto1.c
+     ! some type casts
+     ! line 1835 is typo (?), should be ulLen (was uiSize), pse re-check
+
+   * source/common/hbhip.c
+   * source/server/letofunc.c
+     ! some type casts
+
+2008-07-02 19:40 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! fixed FLOCK() implemetnation
+
+2008-06-16 19:40 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/rddleto.h
+    * added szPath into LETOCONNECTION structure
+  * source/client/letomgmn.c
+    - removed writelog() declaration
+    * connection number in LETO_CONNECT, LETO_SETCURRENTCONNECTION and
+      LETO_GETCURRENTCONNECTION now is beginning from 1
+    + added LETO_PATH(cPath) function. cPath can be used instead of
+      path in SET PATH and SET DEFAULT command
+  * source/client/leto1.c
+    ! typos in letoIsBinaryField
+    + added support for nConnection parameter in the dbUseArea() and
+      dbCreate() functions
+    + added letoRemoveIpFromPath function. Index bag name in OrdCreate
+      and OrdListAdd can be passed with ip name and port
+
+2008-06-09 20:00 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed bug in leto_filef()
+
+2008-06-04 20:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+  * source/server/server.prg
+    ! small fix in hs_OpenIndex(), introduced in my previos commit
+    ! fixed hs_OrderInfo()
+
+2008-06-03 20:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    + added support for _SET_AUTORDER flag
+  * source/server/server.prg
+    ! fixed hs_openindex() function if SET_AUTOPEN flag is disabled on a client
+  * source/server/letofunc.c
+    * added check into LETO_ADDTAG function if tag already opened
+
+2008-06-03 00:20 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    + added support for _SET_AUTOPEN flag
+
+2008-06-01 21:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/common/common_c.c
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+  * source/server/server.prg
+  * source/include/funcleto.h
+    * writelog() function moved to common_c.c
+    + added function LETO_SUM(cField, [cFilter], [ScopeTop], [ScopeBottom])
+
+2008-05-16 15:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! Bugs fixed, related to scopes implementation
+
+2008-05-06 13:24 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * version number has been changed to 0.7
+    * Place for a username and password added to the 'intro' command
+    * 'Exact' setting removed from the 'intro' and from the user structure
+
+2008-04-28 12:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * codepage conversion for memos added
+
+2008-04-18 11:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+    + ULONG ulDeciSec has been added to LETOAREAP
+    +  #define BUFF_REFRESH_TIME   100
+  * source/client/leto1.c
+    * The time when records buffer is got from the server, is kept in
+      pArea->ulDeciSec and if the time since this occurence exceeds the
+      BUFF_REFRESH_TIME, the budder is refreshed.
+
+2008-04-13 17:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    + added current codepage, SET_DATEFORMAT, SET_CENTURE and SET_EXACT
+      into intro command
+  * source/server/letofunc.c
+    + added new user environment fields into USERSTRU. It's need for codeblock
+      evaluation
+    + added leto_SetUserEnv function
+    + added filter set into leto_Seek() function
+  * source/server/server.prg
+    + added leto_SetUserEnv() call into hs_createindex()
+
+2008-04-11 11:02 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! More type casts for MSVS, provided by Andi Jahja
+  + make_vc.bat
+  + makefile.vc
+    + Makefiles for MSVS has been added
+
+2008-04-10 15:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! Bug fixed, which prevented running of a server in a console mode.
+
+2008-04-09 10:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! A lot of type casts for MSVS
+
+2008-04-08 10:08 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Warning fixed.
+  * source/common/common_c.c
+    ! Few type casts for MSVS
+  * source/common/hbip.c
+    * hb_ipConnect() has been changed to decrease the time of connection
+    ! Few type casts for MSVS
+
+2008-04-04 12:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + tests
+  + tests/test_ta.prg
+    + Added a sample, which demonstrates how to use transactions with Leto db server
+
+2008-04-04 12:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Additional fix, related to records unlocking after transaction
+      commit or rollback.
+
+2008-04-04 12:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! Bugs fixed, related to transactions
+    * leto_Rollback([lUnlock]) now unlocks all locked records, if lUnlock == Nil or .T.
+  * source/server/server.prg
+    ! Small bug fixed in hb_createtable()
+
+2008-04-03 15:16 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    ! Few Bugs fixed, related to transactions and records locking
+
+2008-04-03 10:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + make_xhb.bat
+    * Added bat file for xHarbour Builder
+  * Readme.txt
+    * Added info about make_xhb.bat
+
+2008-04-03 10:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/hbip.c
+    * hb_iprecv() and hb_ipsend() has been simplified - unused modes removed.
+    * Changing of send/receive buffer, introduced in previous post, is
+      isolated to separate function hb_ipSetBufSize(), buffer size is reduced
+      to 16K. Changing of buffer size is moved from hb_ipServer() to hb_ipAccept()
+  * include/funcleto.h
+    * HB_SENDRECV_BUFFER_SIZE is increased to 16K
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * Changed calls to hb_iprecv(), hb_ipsend()
+
+2008-04-01 13:36 UTC+0100 Miguel Angel marchuet Frutos (miguelangel/at/marchuet.net)
+  * source/common/hbip.c
+    % increased SND and RCV buffers to 64k and use 1/2 of its capacitie to increase speed
+      transfer. In the future this may be configurable settings.
+
+2008-03-31 10:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Few warnings fixed.
+
+2008-03-28 14:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Bug fixed in leto_FindTable()
+
+2008-03-28 13:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    * Transactions support is ready. Not properly tested yet, but simplest
+      tests works.
+
+2008-03-28 09:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    * Continued implementation of transactions support.
+
+2008-03-27 21:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    ! fixed several bugs for binary fields
+    + add missing SELF_SYNCCHILDREN for letoGoTop and letoGoBottom
+    + added letoSetBlankRecord function. It's need to fill record by
+      empty values before commit operation
+
+2008-03-27 12:44 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    * Continued implementation of transactions support.
+      New functions has been added:
+      leto_BeginTransaction()
+      leto_RollBack()
+      leto_CommitTransaction()
+
+2008-03-27 12:44 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Started implementation of transactions support
+
+2008-03-27 10:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/hbip.c
+    * Added SO_KEEPALIVE option to the server side socket.
+  * Whatsnew.txt
+    * Added build 6 info.
+
+2008-03-27 10:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * hb_strncpyLower is replaced by other functions
+
+2008-03-26 21:20 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/funcleto.h
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    + added support for additional field types:
+      HB_FT_INTEGER
+      HB_FT_DOUBLE
+      HB_FT_FLOAT
+      HB_FT_DAYTIME
+      HB_FT_MODTIME
+    + added hb_strncpyLower function for xHarbour
+  * source/server/server.prg
+    + added requests for codepages
+    * small change in hs_createindex
+
+2008-03-26 12:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/server/letofunc.c
+    * version number has been changed to "0.5"
+  + Whatsnew.txt   
+
+2008-03-26 11:08 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * readme.txt
+    * added info about new ini entries and leto_Connect() function.
+
+2008-03-26 10:32 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! Bug fixed
+  * source/client/leto1.c
+    * ordBagExt() now returns ".NTX" if the dbf is opened via "DBFNTX"
+
+2008-03-26 09:38 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! Few bugs fixed
+    * Now it is possible to define [DATABASE] section and the following
+      options for it:
+      DataPath = some_path
+      Driver = CDX/NTX
+
+2008-03-25 21:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * DATABASE structures and appropriate code has been added.
+
+2008-03-25 20:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Support of DBFNTX has been added.
+      For now, to force Letodb work via DBFNTX driver, you need to write
+      in letodb.ini: DEFAULT_DRIVER = NTX
+
+2008-03-25 17:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Small fix
+
+2008-03-25 16:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/funcleto.h
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * letoOrderListClear() has been implemented.
+
+2008-03-25 12:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * Changed LETOTAG structure
+    * All bagnames and tagnames are kept now in lower case
+
+2008-03-24 14:06 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Bugs fixed, introduced in previous commit
+
+2008-03-24 11:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * some changes in the protocol:
+      SET DELETED flag is transferred now in all move commands instead of
+      'intro' and 'set;01;'
+  * source/client/letomgmn.c
+    * leto_setDeleted() has been removed.
+  * source/server/letofunc.c
+    * changes, related to SET DELETED handling
+    * leto_goto(), leto_skip() and leto_seek() has been changed to use the
+      leto_getParam() function.
+
+2008-03-24 09:24 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * Some optimizations in leto_goto() and leto_skip()
+
+2008-03-23 19:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Bugs fixed in leto_goto() and leto_SetFilter()
+    * leto_SendAnswer() has been optimized.
+
+2008-03-23 09:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    ! fixed bug in leto_Skip if filter is defined
+    % memory allocations has been optimized in leto_Skip
+
+2008-03-22 23:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    % optimized leto_SetScope calls
+
+2008-03-22 22:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Memory leaks fixed in few functions. If hb_itemGetC() is used, the
+      returned value must be freed, or hb_itemGetCPtr() should be used instead.
+    * leto_getParam() function has been added to regularize handling of a string,
+      gotten from the client.
+      leto_mgmt() has been changed to use the leto_getParam().
+
+2008-03-22 21:00 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_skip function has been converted to C level
+    * added szTagName into LETOTAG structure and rewritten leto_FindTag function
+    * renamed letoKeyToItem to leto_KeyToItem
+    * DBOI_KEYTYPE call moved into leto_KeyToItem function
+    * added check for current order into leto_SetFocus()
+    * commented LETO_NSKIPBUF, HS_SETSCOPE, HS_CLEARSCOPE functions
+
+2008-03-22 15:45 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    * added missing initialization for uiLen in leto_Goto() function
+    * changes in leto_rec() for VarField: xHarbour return true in
+      HB_IS_NUMERIC() for one byte strings
+
+2008-03-21 22:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_goto function has been converted to C level.
+
+2008-03-19 00:15 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * scope functions has been converted to C level.
+
+2008-03-18 15:56 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Started implementation of OrderListClear method
+  * source/client/letomgmn.c
+    * leto_mgGetInfo() now accepts info about indexes
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Handling of index and tag structures on C level has been extended
+    * management function now transfers data about indexes.
+
+2008-03-17 19:50 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    * added parameter in hb_gcCollectAll() for xHarbour
+
+2008-03-17 16:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * itmFltExpr member ( to keep the filter codeblock ) has been added to the
+      AREASTRU and appropriate code to set and release it.
+
+2008-03-17 12:48 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * relations has been implemented
+
+2008-03-16 20:14 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * letoOrderListAdd() has been implemented
+  * source/server/letofunc.c
+    * index structures added
+  * source/server/server.prg
+    ! Some fixes
+
+2008-03-16 14:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Small protocol corrections
+  * source/client/letomgmn.c
+    * leto_SetSkipBuffer() added
+  * source/server/letofunc.c
+    * Small protocol corrections
+    * pTag structure added to the area structure
+    * Support for the leto_SetSkipBuffer()
+  * source/server/server.prg
+    * skip procedure uses the value, set by leto_SetSkipBuffer()
+
+2008-03-15 18:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+    * Small corrections
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_file() has been converted to C level.
+
+2008-03-15 11:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Small fix in leto_CloseArea() - records unlocking is called
+    * Cleanup
+
+2008-03-15 11:22 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_append(), hs_update() has been converted to C level.
+
+2008-03-14 12:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/manage.prg
+    * New possibilities added: disconnect and kill user.
+
+2008-03-14 11:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Memory leak fixed in leto_ordfunc()
+    * Garbage collection once in 5 minutes has been added.
+
+2008-03-13 21:48 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/letomgmn.c
+    + leto_mgKill() function added
+  * source/server/leto_win.c
+  * source/server/letofunc.c
+    * support of leto_mgKill() has been added.
+
+2008-03-13 16:38 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+    * Added conditional definition of DBENTRYP_RVVL to discard problems with
+      previous change.
+
+2008-03-13 12:50 UTC+0100 Miguel Angel marchuet Frutos (miguelangel/at/marchuet.net)
+  * source/client/leto1.c
+    + Added ulConnect as 4 parameter for DbDrop and DbExists
+
+2008-03-13 11:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * makefile.bc
+  * Makefile.linux
+    * Makefiles has been updated to support MT mode
+
+2008-03-13 11:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * The repository was tagged with 'v_single_thread'
+  + include/funcleto.h
+  + include/srvleto.h
+  * include/rddleto.h
+    * new header files has been added to separate server related headers.
+    * Threads related function definitiona has been added
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+    * New functions for threads creating and synchronization has been added:
+         BOOL leto_ThreadCreate( void* (*ThreadFunc)(void*) );
+         BOOL leto_ThreadMutexInit( LETO_MUTEX * pMutex );
+         void leto_ThreadMutexDestroy( LETO_MUTEX * pMutex );
+         BOOL leto_ThreadMutexLock( LETO_MUTEX * pMutex );
+         BOOL leto_ThreadMutexUnlock( LETO_MUTEX * pMutex );
+         BOOL leto_ThreadCondInit( LETO_COND * phEvent  );
+         void leto_ThreadCondDestroy( LETO_COND * phEvent );
+         int leto_ThreadCondWait( LETO_COND * phEvent, int iMilliseconds );
+         BOOL leto_ThreadCondUnlock( LETO_COND * pCond );
+  * source/server/letofunc.c
+    * server routines rewritten to work with two threads:
+      first, which accepts connections, waits for clients requests and executes
+           management functions; it doesn't touch Harbour's stack and RDD;
+      second, which handles all requests, related to data access, and, so, works
+           with Harbour's stack and RDD;
+
+2008-03-05 15:24 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Fix in letoOpen() - now it doesn't give run-time error, only a NETERR,
+      if a file can't be opened because of sharing problems
+
+2008-03-05 13:18 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letomgmn.c
+  * utils/manager/manage.prg
+    * Some improvements
+
+2008-03-05 11:08 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/console.prg
+    * Small cleanup
+  * utils/manager/manage.prg
+    * Rewritten using new management functions.
+
+2008-03-05 10:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    ! Small fixes
+  * source/client/letomgmn.c
+    * Following management functions has been implemented:
+      leto_Disconnect()
+      leto_SetCurrentConnection()
+      leto_GetCurrentConnection()
+      leto_GetServerVersion()
+      leto_mgGetInfo()
+      leto_mgGetUsers()
+      leto_mgGetTables()
+  * utils/manager/console.prg
+    * Rewritten using new management functions.
+
+2008-03-04 22:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * utils/manager/manage.prg
+  * utils/manager/console.prg
+    * Some changes in the protocol
+
+2008-03-04 21:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+    * Some changes in LETOCONNECTION structure and connection functions.
+    * leto_Connect() function implemented.
+    * Introducing of management functions started.
+
+2008-03-04 18:44 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Bug fixed in leto_FindTable()
+
+2008-03-04 15:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * hs_ordfunc() is converted to C level
+  * source/client/leto1.c
+    ! Bug fixed in DBOI_POSITION implementation
+
+2008-03-04 13:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Few warnings fixed.
+
+2008-03-04 13:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Locking seems to work properly now
+
+2008-03-04 10:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    * Further locking changes
+
+2008-03-03 22:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * HSTable() class and appropriate stuff is fully converted to C Level
+  * source/client/leto1.c
+    ! Some fixes in leto_RawLock() method
+
+2008-03-01 20:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/rddleto.h
+  * source/server/letofunc.c
+  * source/server/server.prg
+  * source/client/leto1.c
+    + added support for "D", 3 and "D", 4 fields
+    + added support for "V" varfields
+
+2008-03-03 20:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Locking functions are converted to C level and fixed.
+
+2008-03-03 16:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * leto_UnlockAllRec(), leto_Lock(), leto_Unlock() functions added.
+
+2008-03-03 13:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * Restored a change, which was accidentally deleted while last commit
+  * source/server/letofunc.c
+    * Further HSTable conversion
+
+2008-03-02 19:42 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/client/leto1.c
+    ! Bugs fixed, related to delete/recall
+    * fUnLockAll flag of dbAppend() is transferred now to the server.
+
+2008-03-02 16:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Almost all of the HSTable converted to C level.
+
+2008-03-01 22:24 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Yet another part of code converted to C level.
+
+2008-03-01 14:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/client/leto1.c
+    ! Few bugs fixed, related to index creation
+
+2008-03-01 13:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * Few functions, which are not used now, has been removed:
+      leto_At(), leto_Statis(), leto_Date2b()
+
+2008-03-01 12:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Yet another part of code converted to C level, HSUser class is removed.
+
+2008-02-29 13:01 UTC+0100 Miguel Angel marchuet Frutos (miguelangel/at/marchuet.net)
+  * source/server/server.prg
+    ! fixed OrdBagName now is transmited when dbf is open, and now BagName
+      is correctly informed.
+
+2008-02-28 21:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/common/hbip.c
+    * C version of hb_ipClose() added.
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Yet another part of code converted to C level
+
+2008-02-28 21:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * Some cleanup and formatting
+
+2008-02-28 15:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Version number changed to 0.4
+  * source/server/letofunc.c
+    * Version number changed to 0.4
+
+2008-02-28 11:58 UTC+0100 Miguel Angel marchuet Frutos (miguelangel/at/marchuet.net)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! fixed unlock, extra Z founded.
+    + added support to DbOrderInfo, DBOI_NAME, DBOI_BAGNAME and DBOI_UNIQUE (in setget mode)
+
+2008-02-28 10:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Added support for char fields with len >= 256
+  * source/server/server.prg
+    * cValToChar() changed to avoid using of syntax, incompatible with Harbour
+      ( SWITCH ... )
+
+2008-02-27 22:10 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source\server\server.prg
+  * source\server\letofunc.c
+  * source\client\leto1.c
+    + initial support of relations
+
+2008-02-27 21:56 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source\server\letofunc.c
+    ! Bugs fixed, related to tables reallocation
+
+2008-02-26 22:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source\server\server.prg
+  * source\client\leto1.c
+    + added INDEX ON ... CUSTOM support
+
+2008-02-26 13:46 UTC+0100 Miguel Angel marchuet Frutos (miguelangel/at/marchuet.net)
+  * include\rddleto.h
+  * source\client\leto1.c
+  * source\server\letofunc.c
+  * source\server\server.prg
+    + Added support to DbOrderInfo DBOI_ISDESC and DBOI_CUSTOM and prepared code
+      to full support DbOrderInfo. PLEASE you can see if any thing is wrong in my first
+      upload.
+
+2008-02-26 11:24 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! Bug fixed in hs_createindex()
+  * source/client/leto1.c
+    ! Fix for Linux compiler
+
+2008-02-25 22:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+  * source/client/leto1.c
+    * The key for scope operations is sent now like for seek command
+
+2008-02-25 22:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Few problems fixed.
+
+2008-02-22 09:56 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * Format of transferred data is optimized
+    * Info about memo fields ( empty or filled ) is included in a transferred
+      record.
+
+2008-02-21 18:56 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Bug fixed in leto_Memo() function
+
+2008-02-21 16:52 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! Few bugs fixed
+
+2008-02-21 14:42 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Few warnings fixed
+
+2008-02-21 13:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/client/leto1.c
+    ! Few warnings fixed
+  * Makefile.linux
+    ! hbct has been removed from the libraries.list
+
+2008-02-20 22:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Small fix for xHarbour
+
+2008-02-20 21:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * leto_SelectArea() has been added instead of oUser:SelectArea()
+    * Some other C level data added instead of prg level
+
+2008-02-20 17:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    ! Bug fixed
+
+2008-02-20 16:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * utils/manager/manage.prg
+    * Management functions extended - now it is possible to see files, opened
+      by given client
+
+2008-02-20 12:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * Time measurement reimplemented on C level
+  * source/server/server.prg
+    * Some cleanup
+  * utils/manager/manage.prg
+    ! Small fix
+
+2008-02-19 22:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * C level table and area structures with appropriate init/release
+      functions introduced.
+  * utils/manager/manage.prg
+  * utils/manager/console.prg
+    * Small changes in format of received data
+
+2008-02-19 15:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Main server cycle, hs_intro(), hs_mgmt() has been converted to C level
+  * makefile.bc
+    * Small changes
+
+2008-02-18 22:53 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+    * Few function declarations from hbip.c has been added.
+  * source/server/leto_lnx.c
+  * source/server/leto_win.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Further prg to C conversion
+
+2008-02-18 17:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/hbip.c
+    * C level versions of hb_ip_rfd_... functions added
+
+2008-02-18 16:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/hbip.c
+    * C level versions of hb_ipServer() and hb_ipAccept() added
+
+2008-02-18 12:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_memo() is converted to C level.
+  * source/client/leto1.c
+    ! Few fixes, related to memo updating and record appending
+
+2008-02-17 11:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * Conversion of management fucntions to C level has been started
+  * source/client/leto1.c
+    leto_Putvalue(): updating of memo field has been implemented.
+  * include/rddleto.h
+  * source/common/common_c.c
+    * leto_Addlen() function has been changed
+
+
+2008-02-16 14:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_seek(), hs_deleted() are converted to C level.
+    ! Some fixes
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/common/common_c.c
+    * leto_Addlen() function has been implemented
+
+2008-02-15 09:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    * hs_pack(),hs_zap are converted to C level.
+    * Code cleanup, few warnings fixed
+
+2008-02-14 10:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+  * source/server/server.prg
+    ! Fix in leto_reccount()
+    * hs_flush() is converted to C level.
+
+2008-02-14 09:45 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/leto1.c
+    ! Some fixes, related with latest changes
+  * source/server/letofunc.c
+    * leto_Reccount() function added, which replaces prg level hs_reccount()
+
+2008-02-13 21:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    ! Small fix
+    * Alias and workarea number are sent now to server
+  * source/server/server.prg
+    * Generating workarea id from the client's workarea number
+
+2008-02-13 16:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/server/server.prg
+    * Small fix in hs_lock()
+
+2008-02-13 14:59 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Next part of the server code is converted to a C level.
+
+2008-02-12 12:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/letofunc.c
+    * Reallocation of user structures array has been added.
+
+2008-02-12 11:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Part of the server code is converted to a C level.
+  * utils/manager/manage.prg
+    * Small changes
+
+2008-02-11 15:30 UTC+0200 Petr Chornyj (myorg63/at/mail.ru) 
+  * source/server/letofunc.c
+    * GetCmdItem() function added
+  * source/server/server.prg
+    * GetCmdItem() function commented
+
+2008-02-11 13:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/common/common_c.c
+  * source/common/hb_ip.c
+    * Some changes, needed to rewrite parts of server to C level.
+
+2008-02-10 19:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+  * source/client/leto1.c
+    * The key for seek is sent now as any other character field - with a length
+      byte before.
+
+2008-02-10 17:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/errorsys.prg
+    * Few changes, provided by Francesco Saverio Giudice 
+    * Small change in wrlog() function
+  * source/server/letofunc.c
+    * leto_ScanAndDel() funcion added - provided by P.Chornyj <myorg63@mail.ru> 
+  * source/server/server.prg
+    * Small fix ib hs_memo, provided by Francesco Saverio Giudice
+    * Few code fragments are replaced with leto_ScanAndDel()
+    * Non empty balue of DataPath ini file option is mandatory now for file
+      functions be permitted.
+    * New ini file options added:
+      EnableFileFunc = 0 ( 1 - if using of file functions - leto_file(), 
+               leto_ferase(), leto_frename() is enabled )
+      EnableAnyExt = 0 ( 1 - if using of non standard database/index files
+               is enabled )
+  * source/client/leto1.c
+    * Small change, which eliminates using of "../" in a path.
+
+2008-02-09 12:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+    + added missing ordCondSet in hs_createindex()
+  * source/client/leto1.c
+    + added parameters for ordCondSet evaluation
+
+2008-02-08 21:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+  * source/server/server.prg
+    * dbDelete()/dbRecall() operations should be processed when
+      leto_PutRec() called
+
+2008-02-08 21:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/letomgmn.c
+    + added LETO_FERASE(), LETO_FRENAME(), LETO_FERROR() functions
+  * source/server/server.prg
+    + implemented functions above
+
+2008-02-07 21:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * use HB_SET_DEFAULT instead of HB_SET_PATH in letoCreate()
+    + added additional parameter lFile to leto_getIpFromPath()
+    * leto_getIpFromPath() changed to parse directories from HB_SET_PATH
+  * source/client/letomgmn.c
+    * changed leto_getIpFromPath() usage 
+
+2008-02-07 10:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * utils/manager/manage.prg
+    * exename() call is replaced by hb_Argv(0) to avoid using of ct library
+  * utils/manager/bld.bat
+    * hbct.lib is removed from the libraries list
+
+2008-02-06 20:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * hs_openindex() implemented
+  * utils/manager/manage.prg
+    ! Small fix for xHarbour
+
+2008-02-06 19:35 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + source/common/common_c.c
+    * C level functions, which are used in both client and server modules
+      hb_millisec() has been renamed to leto_millisec()
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/server.prg
+  * include/rddleto.h
+  * makefile.bc
+  * Makefile.linux
+    * appropiate changes in related files.
+
+2008-02-06 15:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/client/leto1.c
+    ! Bug fixed in letoOrderInfo(), thanks to Miguel Angel Marchuet
+
+2008-02-06 09:20 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/server/server.prg
+  ! source/client/leto1.c
+    * Seeking caused an error if the keytype was wrong.
+
+2008-02-05 22:50 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+    + added requests for expression engine
+
+2008-02-05 22:10 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/server/server.prg
+  ! source/client/leto1.c
+    * Fixed bugs with locking
+
+2008-02-05 20:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    ! Fixed a bug in hs_seek() ( failure returned in case of empty key )
+    ! Fixed paths in hs_createindex()
+    * Added cAlias member in HSArea - an alias from the client
+
+2008-02-05 15:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * include/rddleto.h
+    * Some changes in workarea definition to solve problem with diffences
+      in [x]Harbour versions 
+
+2008-02-04 20:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/letomgmn.c
+    * leto_DataSendRecv() function moved to leto1.c
+  * source/server/server.prg
+  * source/client/leto1.c
+  * include/rddleto.h
+    * rewritten scope operations to reduce server calls
+  * utils/manager/console.prg
+    * ExeName() replaced with HB_ARGV(0)
+
+2008-02-04 13:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/client/leto1.c
+    * Small fix, which allows to use a drive letter in a file path
+  ! readme.txt
+    * USE command sample fixed
+
+2008-02-04 13:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/client/leto1.c
+    * Few warnings fixed
+  ! source/common/net.c
+    * bug fixed
+
+2008-02-03 21:50 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/server.prg
+    * Errors while files opening and creation are written to the log now,
+      subcode is passed to client.
+  * Makefile.linux
+    * added letomgmn.c
+  * utils/manager/console.prg
+  * utils/manager/manage.prg
+    * Few functions has been changed to avoid using of hb_at()
+
+2008-02-03 18:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+    + added "file" command for LETO_FILE() function
+  + source/client/letomgmn.c
+    + added LETO_FILE() function
+  * source/client/leto1.c
+    * chahged some functions from static to export
+    + added OrdBagExt(), OrdNumber()
+  * include/rddleto.h
+    + added uiTag to LETOTAGINFO structure
+  * makefile.bc
+    * added letomgmn.c
+
+2008-02-03 11:30 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/server/errorsys.prg
+    * file name converted to lowercase
+
+2008-02-02 21:00 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/rddleto.h
+    + added pKeyItem to LETOTAGINFO structure
+  * source/client/leto1.c
+    + added dbOrerInfo(DBOI_KEYVAL,...)
+
+2008-02-02 16:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/server.prg
+  * source/client/leto1.c
+  * include/rddleto.h
+    + added support for dbOrerInfo(DBOI_KEYSIZE,...)
+    + added scope support:
+      dbOrerInfo(DBOI_SCOPETOP,...)
+      dbOrerInfo(DBOI_SCOPEBOTTOM,...)
+      dbOrerInfo(DBOI_SCOPESET,...)
+      dbOrerInfo(DBOI_SCOPETOPCLEAR)
+      dbOrerInfo(DBOI_SCOPEBOTTOMCLEAR)
+      dbOrerInfo(DBOI_SCOPECLEAR)
+  * makefile.bc
+    * changed terminal lib with gtwin for console mode
+
+2008-02-01 20:12 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Yet another changes to provide compatibility with earlier versions of
+      [x]Harbour
+
+2008-02-01 14:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/server.prg
+  * source/server/letofunc.c
+    * Few changes to provide compatibility with earlier versions of [x]Harbour
+
+2008-02-01 13:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * letodb/utils/manager/console.prg
+    * small interface changes
+  * Readme.txt
+    * Added info about management utilities
+
+2008-02-01 12:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/client/leto1.c
+    ! Yet another fix in leto_getIpFromPath()
+
+2008-02-01 11:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/client/leto1.c
+    ! Fix in leto_getIpFromPath()
+
+2008-02-01 09:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  ! source/client/leto1.c
+    ! Important fix in leto_ParseRec() - convertion of date type field.
+  * include/rddleto.h
+    * Added HB_FT_... definitions, which was introduced in [x]Harbour in
+      October 2007, to be compatible with earlier distributions.
+
+2008-01-31 20:30 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * make_b32.bat
+    * HB_PATH env var used for copy command
+  * makefile.bc
+    * changes for xharbour
+  * source/client/leto1.c
+    * warning cleanup
+    * changes for xharbour
+  * source/server/server.prg
+    * changes for xharbour
+  * source/server/letofunc.c
+    * chanded HB_MILLISEC() for xharbour
+
+2008-01-31 17:00 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + letodb/utils/manager/console.prg
+    * simple console management utility has been added
+  + letodb/Changelog
+    * this Changelog file has been created
