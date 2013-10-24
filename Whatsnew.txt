@@ -1,0 +1,113 @@
+$Id: Whatsnew.txt,v 1.5 2009/06/01 11:33:16 alkresin Exp $
+
+                               Leto DB Server
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                       What's new in the last version
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[!] Important
+[+] New
+[-] Fixed error
+[*] Changes
+
+
+LetoDB Build 8 ( 01.06.2009 )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[*] Now, if letodb server crashes ( this still may happen in case of some kinds of data
+      corruption ), it closes all opened tables and leaves a debug info in the letodb_crash.log.
+
+[*] More statistical information is gathered now and passed in response to management
+      calls.
+
+[*] Checking of filter expression is much more smart now, this allows to prevent errors
+      while moving in filtered table.
+
+[+] New function has been added - leto_IsFltOptim(), it returns .T., if the filter
+      for a current workarea is evaluated on the server.
+
+[-] Few important fixes.
+
+
+LetoDB Build 7 ( 22.04.2009 )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[!] Added initial support of users authentication.
+
+    A function leto_Connect() now passes 3 parameters:
+
+      leto_Connect( cAddress [, cUsername, cPassword ] )
+
+    Following functions added to handle users information:
+
+      leto_useradd( cUser, cPassword [, cAccess] )
+      leto_userpasswd( cUser, cPassword )
+      leto_userrights( cUser, cAccess )
+      leto_userflush()
+
+    New items added to the server's letodb.ini:
+
+      PASS_FOR_LOGIN, PASS_FOR_MANAGE, PASS_FOR_DATA, PASS_FILE.
+
+    utils/manager/console.prg has includes now some users management possibilities.
+
+[!] Added transactions support.
+
+[+] Added encryption of the data, which goes through the network, it is turned on by a new
+    letodb.ini parameter:
+
+      CRYPT_TRAFFIC = 1
+
+[+] Management functions now returns some additional information.
+
+[*] SKIP operation has been optimized to increase the performance.
+
+[*] utils/manager/manage.prg has been improved.
+
+[-] Many fixes and enhancements.
+
+LetoDB Build 6 ( 27.03.2008 )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[-] hb_strncpyLower() has been removed, because, as it appears, it is absent in
+    xHarbour and current official Harbour release
+
+[+] Added support for additional field types:
+      HB_FT_INTEGER
+      HB_FT_DOUBLE
+      HB_FT_FLOAT
+      HB_FT_DAYTIME
+      HB_FT_MODTIME
+
+LetoDB Build 5 ( 26.03.2008 )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[!] All basic RDD functionality has been implemented.
+    Relations, orderListAdd, orderListClear has been added.
+
+[!] The server works im multithread mode now.
+    First thread listen sockets, accept connections and answers to commands,
+    which doesn't demand database access and Harbour's VM/stack functions.
+    The second answers to all other commands.
+
+[!] DBFNTX support has been added. The driver, which will be used to open a
+    table ( DBFCDX or DBFNTX ) is determined at server side from the letodb.ini -
+    see readme.txt for details.
+
+[*] Most of the server code has been converted to a C level
+
+[+] Following functions has been implemented:
+
+      leto_Connect()
+      leto_Disconnect()
+      leto_SetCurrentConnection()
+      leto_GetCurrentConnection()
+      leto_GetServerVersion()
+      leto_mgGetInfo()
+      leto_mgGetUsers()
+      leto_mgGetTables()
+      leto_mgKill()
+      leto_SetSkipBuffer()
+
+[+] GUI management utility has been rewritten to use new management functions
+    and extended: info about opened indexes and possibility to kill user has
+    been added.
+
+[-] As usually, bug fixes.

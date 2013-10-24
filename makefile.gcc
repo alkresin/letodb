@@ -1,0 +1,84 @@
+# $Id: makefile.gcc,v 1.5 2010/06/10 05:12:11 alkresin Exp $
+# makefile for MINGW compiler
+
+# uncomment this line if you want to build letodb with xharbour
+# XHARBOUR = yes
+
+SRV_MODE = __WIN_DAEMON__
+
+ifeq ($(SRV_MODE),__CONSOLE__)
+HB_GT_LIB = gtwin
+else
+HB_GT_LIB = gtgui
+endif
+
+ifeq ($(XHARBOUR),)
+HARBOUR_LIBS = -lhbvm -lhbrtl -l$(HB_GT_LIB) -lhblang -lhbrdd -lhbmacro -lhbpp -lrddntx -lrddcdx -lrddfpt -lhbsix -lhbcommon -lhbcpage
+else
+HARBOUR_LIBS = -ldebug -lvm -lrtl -l$(HB_GT_LIB) -llang -lrdd -lmacro -lpp -ldbfntx -ldbfcdx -ldbffpt -lhbsix -lcommon -lcodepage -lpcrepos
+endif
+
+HRB_DIR = $(HB_PATH)
+INC_DIR = include
+OBJ_DIR = obj\w32
+LIB_DIR = lib
+BIN_DIR = bin
+SERVER_DIR = source\server
+CLIENT_DIR = source\client
+COMMON_DIR = source\common
+
+CFLAGS = -Wall -mno-cygwin
+HARBOURFLAGS = -i$(INCLUDE_DIR) -n -q0 -w -es2 -gc0 -d$(SRV_MODE) $(PRG_USR)
+
+all: \
+   $(LIB_DIR)/librddleto.a \
+   $(BIN_DIR)/letodb.exe
+
+$(LIB_DIR)/librddleto.a : \
+   $(OBJ_DIR)/leto1.o \
+   $(OBJ_DIR)/letomgmn.o \
+   $(OBJ_DIR)/hbip.o \
+   $(OBJ_DIR)/net.o \
+   $(OBJ_DIR)/common_c.o \
+   $(OBJ_DIR)/blowfish.o \
+   $(OBJ_DIR)/rddsys.o
+	ar rc $@ $^
+
+$(BIN_DIR)/letodb.exe : \
+   $(OBJ_DIR)/server.o \
+   $(OBJ_DIR)/common.o \
+   $(OBJ_DIR)/hbip.o \
+   $(OBJ_DIR)/common_c.o \
+   $(OBJ_DIR)/blowfish.o \
+   $(OBJ_DIR)/letocore.o \
+   $(OBJ_DIR)/letofunc.o \
+   $(OBJ_DIR)/letoacc.o \
+   $(OBJ_DIR)/letovars.o \
+   $(OBJ_DIR)/leto_win.o \
+   $(OBJ_DIR)/errint.o \
+   $(OBJ_DIR)/errorsys.o
+	gcc -Wall -mwindows -o$@ $^ -L$(HRB_DIR)/lib/win/mingw -Wl,--start-group $(HARBOUR_LIBS) -luser32 -lgdi32 -lwinspool -lcomctl32 -luuid -lkernel32 -lws2_32 -Wl,--end-group
+
+.prg.c:
+	$(HRB_DIR)/bin/harbour.exe $^ $(HARBOURFLAGS) -I$(HRB_DIR)/include -i$(INC_DIR) -o$@ $^
+
+.c.o:
+	gcc $(CFLAGS) -c -I$(INC_DIR) -I$(HRB_DIR)/include -o $@ $^
+
+$(OBJ_DIR)/%.c : $(SERVER_DIR)/%.prg
+	$(HRB_DIR)/bin/harbour.exe $^ $(HARBOURFLAGS) -I$(HRB_DIR)/include -i$(INC_DIR) -o$@ $^
+
+$(OBJ_DIR)/%.o : $(SERVER_DIR)/%.c
+	gcc $(CFLAGS) -c -I$(INC_DIR) -I$(HRB_DIR)/include -o $@ $^
+
+$(OBJ_DIR)/%.c : $(CLIENT_DIR)/%.prg
+	$(HRB_DIR)/bin/harbour.exe $^ $(HARBOURFLAGS) -I$(HRB_DIR)/include -i$(INC_DIR) -o$@ $^
+
+$(OBJ_DIR)/%.o : $(CLIENT_DIR)/%.c
+	gcc $(CFLAGS) -c -I$(INC_DIR) -I$(HRB_DIR)/include -o $@ $^
+
+$(OBJ_DIR)/%.c : $(COMMON_DIR)/%.prg
+	$(HRB_DIR)/bin/harbour.exe $^ $(HARBOURFLAGS) -I$(HRB_DIR)/include -i$(INC_DIR) -o$@ $^
+
+$(OBJ_DIR)/%.o : $(COMMON_DIR)/%.c
+	gcc $(CFLAGS) -c -I$(INC_DIR) -I$(HRB_DIR)/include -o $@ $^
