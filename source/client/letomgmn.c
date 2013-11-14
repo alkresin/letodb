@@ -51,14 +51,24 @@
 #include "hbapi.h"
 #include "hbapiitm.h"
 #include "rddleto.h"
+#ifdef __XHARBOUR__
+#include "hbstack.h"
+#endif
+
+#if defined( __XHARBOUR__ ) || ( defined( __HARBOUR__ ) && ( __HARBOUR__ - 0 <= 0x010100 ) )
+   #define hb_snprintf snprintf
+#endif
 
 static int iFError = 0;
 extern LETOCONNECTION * pCurrentConn;
+extern USHORT uiConnCount;
 
 extern int leto_getIpFromPath( const char * sSource, char * szAddr, int * piPort, char * szPath, BOOL lFile );
 extern void leto_getFileFromPath( const char * sSource, char * szFile );
+extern const char * letoRemoveIpFromPath(const char * szPath);
+
 extern LETOCONNECTION * leto_ConnectionFind( const char * szAddr, int iPort );
-extern LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char * szUser, const char * szPass );
+extern LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char * szUser, const char * szPass, int iTimeOut );
 extern void leto_ConnectionClose( LETOCONNECTION * pConnection );
 extern LETOCONNECTION * leto_getConnectionPool( void );
 extern long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, ULONG ulLen );
@@ -73,7 +83,7 @@ static LETOCONNECTION * letoParseFile( const char *szSource, char *szFile)
 
    if( leto_getIpFromPath( szSource, szAddr, &iPort, szFile, TRUE ) &&
        ( ( ( pConnection = leto_ConnectionFind( szAddr, iPort ) ) != NULL ) ||
-         ( ( pConnection = leto_ConnectionNew( szAddr, iPort, NULL, NULL ) ) ) != NULL ) )
+         ( ( pConnection = leto_ConnectionNew( szAddr, iPort, NULL, NULL, 0 ) ) ) != NULL ) )
    {
       unsigned int uiLen = strlen( szFile );
 
@@ -92,7 +102,7 @@ HB_FUNC( LETO_FERROR )
    hb_retni( iFError );
 }
 
-static LETOCONNECTION * letoParseParam( char * szParam, char * szFile )
+LETOCONNECTION * letoParseParam( const char * szParam, char * szFile )
 {
    LETOCONNECTION * pConnection;
 
@@ -117,7 +127,7 @@ HB_FUNC( LETO_FILE )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
-      sprintf( szData,"file;01;%s;\r\n", szFile );
+      hb_snprintf( szData, _POSIX_PATH_MAX + 16, "file;01;%s;\r\n", szFile );
 
       if ( !leto_DataSendRecv( pConnection, szData, 0 ) )
       {
@@ -144,7 +154,7 @@ HB_FUNC( LETO_FERASE )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
-      sprintf( szData,"file;02;%s;\r\n", szFile );
+      hb_snprintf( szData, _POSIX_PATH_MAX + 16, "file;02;%s;\r\n", szFile );
 
       if ( !leto_DataSendRecv( pConnection, szData, 0 ) )
       {
@@ -175,9 +185,10 @@ HB_FUNC( LETO_FRENAME )
 
    if( HB_ISCHAR(1) && HB_ISCHAR(2) && (pConnection = letoParseParam( hb_parc(1), szFile) ) != NULL )
    {
-      char szData[_POSIX_PATH_MAX + 16];
+      char szData[_POSIX_PATH_MAX + _POSIX_PATH_MAX + 16];
 
-      sprintf( szData,"file;03;%s;%s;\r\n", szFile, hb_parc(2) );
+      hb_snprintf( szData, _POSIX_PATH_MAX + _POSIX_PATH_MAX + 16, "file;03;%s;%s;\r\n",
+         szFile, letoRemoveIpFromPath( hb_parc(2) ) );
 
       if ( !leto_DataSendRecv( pConnection, szData, 0 ) )
       {
@@ -210,7 +221,7 @@ HB_FUNC( LETO_MEMOREAD )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
-      sprintf( szData,"file;04;%s;\r\n", szFile );
+      hb_snprintf( szData, _POSIX_PATH_MAX + 16, "file;04;%s;\r\n", szFile );
 
       if ( !leto_DataSendRecv( pConnection, szData, 0 ) )
       {
@@ -270,10 +281,11 @@ HB_FUNC( LETO_CONNECT )
    int iPort;
    const char * szUser = (HB_ISNIL(2)) ? NULL : hb_parc(2);
    const char * szPass = (HB_ISNIL(3)) ? NULL : hb_parc(3);
+   int iTimeOut = hb_parni(4);
 
    if( HB_ISCHAR(1) && leto_getIpFromPath( hb_parc(1), szAddr, &iPort, NULL, FALSE ) &&
        ( ( ( pConnection = leto_ConnectionFind( szAddr, iPort ) ) != NULL ) ||
-         ( ( pConnection = leto_ConnectionNew( szAddr, iPort, szUser, szPass ) ) ) != NULL ) )
+         ( ( pConnection = leto_ConnectionNew( szAddr, iPort, szUser, szPass, iTimeOut ) ) ) != NULL ) )
    {
       pCurrentConn = pConnection;
       hb_retni( pConnection - leto_getConnectionPool() + 1 );
@@ -353,11 +365,7 @@ HB_FUNC( LETO_MGGETINFO )
             for( i=1; i<=17; i++ )
             {
                if( !leto_getCmdItem( &ptr, szData ) )
-               {
-                  hb_itemReturn( aInfo );
-                  hb_itemRelease( aInfo );
-                  return;
-               }
+                  break;
                ptr ++;
                temp = hb_itemPutCL( NULL, szData, strlen(szData) );
                hb_itemArrayPut( aInfo, i, temp );
@@ -378,9 +386,9 @@ HB_FUNC( LETO_MGGETUSERS )
    if( pCurrentConn )
    {
       if( HB_ISNIL(1) )
-         sprintf( szData, "mgmt;01;\r\n" );
+         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;01;\r\n" );
       else
-         sprintf( szData, "mgmt;01;%s;\r\n", hb_parc(1) );
+         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;01;%s;\r\n", hb_parc(1) );
       if ( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
       {
          int iUsers, i, j;
@@ -416,9 +424,9 @@ HB_FUNC( LETO_MGGETTABLES )
    if( pCurrentConn )
    {
       if( HB_ISNIL(1) )
-         sprintf( szData, "mgmt;02;\r\n" );
+         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;02;\r\n" );
       else
-         sprintf( szData, "mgmt;02;%s;\r\n", hb_parc(1) );
+         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;02;%s;\r\n", hb_parc(1) );
       if ( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
       {
          int iTables, i, j;
@@ -455,7 +463,7 @@ HB_FUNC( LETO_MGKILL )
    {
       if( !HB_ISNIL(1) )
       {
-         sprintf( szData, "mgmt;09;%s;\r\n", hb_parc(1) );
+         hb_snprintf( szData, 32, "mgmt;09;%s;\r\n", hb_parc(1) );
          leto_DataSendRecv( pCurrentConn, szData, 0 );
       }
    }
@@ -550,7 +558,7 @@ HB_FUNC( LETO_USERADD )
             szPass[ulLen*2] = '\0';
          }
 
-         sprintf( szData, "admin;uadd;%s;%s;%s;\r\n", hb_parc(1), szPass, szAccess );
+         hb_snprintf( szData, 96, "admin;uadd;%s;%s;%s;\r\n", hb_parc(1), szPass, szAccess );
          if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
          {
             char * ptr = leto_firstchar();
@@ -592,7 +600,7 @@ HB_FUNC( LETO_USERPASSWD )
             szPass[ulLen*2] = '\0';
          }
 
-         sprintf( szData, "admin;upsw;%s;%s;\r\n", hb_parc(1), szPass );
+         hb_snprintf( szData, 96, "admin;upsw;%s;%s;\r\n", hb_parc(1), szPass );
          if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
          {
             char * ptr = leto_firstchar();
@@ -612,7 +620,7 @@ HB_FUNC( LETO_USERRIGHTS )
    {
       if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
-         sprintf( szData, "admin;uacc;%s;%s;\r\n", hb_parc(1), hb_parc(2) );
+         hb_snprintf( szData, 96, "admin;uacc;%s;%s;\r\n", hb_parc(1), hb_parc(2) );
          if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
          {
             char * ptr = leto_firstchar();
@@ -630,7 +638,7 @@ HB_FUNC( LETO_USERFLUSH )
 
    if( pCurrentConn )
    {
-      sprintf( szData, "admin;flush;\r\n" );
+      hb_snprintf( szData, 24, "admin;flush;\r\n" );
       if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
       {
          char * ptr = leto_firstchar();

@@ -54,9 +54,17 @@
 #define LETO_ERR_RECV         4
 #define LETO_ERR_SEND         5
 #define LETO_ERR_MANY_CONN    6
+#define LETO_ERR_SOCKET       7
 
 #define LETO_VCREAT           1
 #define LETO_VOWN             2
 #define LETO_VDENYWR          4
 #define LETO_VDENYRD          8
 #define LETO_VPREVIOUS        1
+
+#define RDDI_REFRESHCOUNT     101
+#define DBI_BUFREFRESHTIME    1001
+#define DBI_CLEARBUFFER       1002
+
+#define LETO_NTX              1
+#define LETO_CDX              2

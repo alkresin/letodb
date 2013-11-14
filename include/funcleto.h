@@ -75,7 +75,9 @@
 #define HB_SENDRECV_BUFFER_SIZE         16384
 #if defined( HB_OS_WIN_32 ) || defined( HB_OS_WIN )
    #define HB_SOCKET_T SOCKET
-   #include <winsock2.h>
+   #ifndef HB_SOCKET_H_
+      #include <winsock2.h>
+   #endif
 #else
    #define HB_SOCKET_T int
 #endif
@@ -92,33 +94,6 @@
    #define __OLDRDD__
 #endif
 
-extern int hb_ipDataReady( HB_SOCKET_T hSocket, int timeout );
-extern int hb_ipRecv( HB_SOCKET_T hSocket, char *Buffer, int iMaxLen );
-extern int hb_ipSend( HB_SOCKET_T hSocket, const char *Buffer, int iSend, int timeout );
-extern HB_SOCKET_T hb_ipConnect( const char * szHost, int iPort, int timeout );
-extern HB_SOCKET_T hb_ipServer( int iPort, const char * szAddress, int iListen );
-extern HB_SOCKET_T hb_ipAccept( HB_SOCKET_T hSocket, int timeout, char * szAddr, long int * lPort );
-extern void hb_ipInit( void );
-extern void hb_ipCleanup( void );
-extern int hb_iperrorcode( void );
-extern int hb_ipclose( HB_SOCKET_T hSocket );
-extern void hb_ip_rfd_zero( void);
-extern void hb_ip_rfd_clr( HB_SOCKET_T hSocket );
-extern void hb_ip_rfd_set( HB_SOCKET_T hSocket );
-extern BOOL hb_ip_rfd_isset( HB_SOCKET_T hSocket );
-extern int hb_ip_rfd_select( int iTimeOut );
-extern void hb_getLocalIP( HB_SOCKET_T hSocket, char * szIP );
-extern int leto_n2b( char *s, unsigned long int n );
-extern int leto_n2cb( char *s, unsigned long int n, int iLenLen );
-extern long int leto_b2n( const char *s, int iLenLen );
-extern char * leto_AddLen( char * pData, ULONG * uiLen, BOOL lBefore );
-extern int leto_BagCheck( const char * szTable, const char * szBagName );
-extern void leto_writelog( const char* s, int n );
-extern void leto_encrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
-extern void leto_decrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
-extern void leto_byte2hexchar( const char * ptri, int iLen, char * ptro );
-extern void leto_hexchar2byte( const char * ptri, int iLen, char * ptro );
-
 #if !( defined( HB_FT_STRING ) )
 #define HB_FT_STRING          HB_IT_STRING
 #define HB_FT_LOGICAL         HB_IT_LOGICAL
@@ -133,6 +108,9 @@ extern void leto_hexchar2byte( const char * ptri, int iLen, char * ptro );
 #define HB_FT_ANY             HB_IT_ANY
 #define HB_FT_FLOAT           5     /* "F" */
 #define HB_FT_CURRENCY        13    /* "Y" */
+#endif
+#if !( defined( HB_FT_DATETIME ) )
+#define HB_FT_DATETIME        8     /* "T" */
 #endif
 #if !( defined( HB_FT_DAYTIME ) )
 #define HB_FT_DAYTIME         9     /* "@" */
@@ -167,3 +145,36 @@ extern void leto_hexchar2byte( const char * ptri, int iLen, char * ptro );
 #if ! defined( _POSIX_PATH_MAX )
   #define _POSIX_PATH_MAX HB_PATH_MAX
 #endif
+
+#define LETO_FLG_BOF          1
+#define LETO_FLG_EOF          2
+#define LETO_FLG_LOCKED       4
+#define LETO_FLG_DEL          8
+#define LETO_FLG_FOUND       16
+
+extern int hb_ipDataReady( HB_SOCKET_T hSocket, int timeout );
+extern int hb_ipRecv( HB_SOCKET_T hSocket, char *Buffer, int iMaxLen );
+extern int hb_ipSend( HB_SOCKET_T hSocket, const char *Buffer, int iSend, int timeout );
+extern HB_SOCKET_T hb_ipConnect( const char * szHost, int iPort, int timeout );
+extern HB_SOCKET_T hb_ipServer( int iPort, const char * szAddress, int iListen );
+extern HB_SOCKET_T hb_ipAccept( HB_SOCKET_T hSocket, int timeout, char * szAddr, long int * lPort );
+extern void hb_ipInit( void );
+extern void hb_ipCleanup( void );
+extern int hb_iperrorcode( void );
+extern int hb_ipclose( HB_SOCKET_T hSocket );
+extern void hb_ip_rfd_zero( void);
+extern void hb_ip_rfd_clr( HB_SOCKET_T hSocket );
+extern void hb_ip_rfd_set( HB_SOCKET_T hSocket );
+extern BOOL hb_ip_rfd_isset( HB_SOCKET_T hSocket );
+extern int hb_ip_rfd_select( int iTimeOut );
+extern void hb_getLocalIP( HB_SOCKET_T hSocket, char * szIP );
+extern int leto_n2b( char *s, unsigned long int n );
+extern int leto_n2cb( char *s, unsigned long int n, int iLenLen );
+extern long int leto_b2n( const char *s, int iLenLen );
+extern char * leto_AddLen( char * pData, ULONG * uiLen, BOOL lBefore );
+extern int leto_BagCheck( const char * szTable, const char * szBagName );
+extern void leto_writelog( const char* s, int n );
+extern void leto_encrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
+extern void leto_decrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
+extern void leto_byte2hexchar( const char * ptri, int iLen, char * ptro );
+extern void leto_hexchar2byte( const char * ptri, int iLen, char * ptro );

@@ -61,8 +61,11 @@ typedef struct _LETOCONNECTION_
    HB_SOCKET_T hSocket;
    char *      pAddr;
    int         iPort;
+   int         iTimeOut;
    char *      szPath;
    char        szVersion[24];
+   unsigned int uiMajorVer;
+   unsigned int uiMinorVer;
    char        szVerHarbour[80];
    char        szAccess[8];
    char        cDopcode[2];
@@ -156,12 +159,6 @@ HB_EXTERN_END
 #if defined( HARBOUR_VER_BEFORE_100 ) 
 typedef USHORT ( * DBENTRYP_RVVL )( struct _RDDNODE * pRDD, PHB_ITEM p1, PHB_ITEM p2, ULONG p3 );
 #endif
-
-#define LETO_FLG_BOF          1
-#define LETO_FLG_EOF          2
-#define LETO_FLG_LOCKED       4
-#define LETO_FLG_DEL          8
-#define LETO_FLG_FOUND       16
 
 #define LETO_MAX_KEY        256     /* Max len of key */
 #define LETO_MAX_EXP        256     /* Max len of KEY/FOR expression */

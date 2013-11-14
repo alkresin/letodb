@@ -7,7 +7,7 @@ if not exist obj md obj
 if not exist obj\b32 md obj\b32
 :BUILD
 
-SET HB_PATH=c:\harbour_v3
+rem SET HB_PATH=c:\harbour_v3
 make -l EXE_OBJ_DIR=obj\b32\bin OBJ_DIR=obj\b32 -fmakefile.bc %1 %2 %3 > make_b32.log
 if errorlevel 1 goto BUILD_ERR
 rem copy lib\rddleto.lib %HB_PATH%\lib\rddleto.lib
