@@ -62,7 +62,7 @@ COMMON_DIR = source\common
 # C compiler definition and C flags. These should never have to change.
 #
 
-CFLAGS               = -I$(INCLUDE_DIR) -d $(C_USR) $(CFLAGS) -tWM -D__WIN32__ -D$(SRV_MODE) -D__VERSION3__
+CFLAGS               = -I$(INCLUDE_DIR) -d $(C_USR) $(CFLAGS) -tWM -D__WIN32__ -D$(SRV_MODE)
 CLIBFLAGS            = -c $(CFLAGS) $(CLIBFLAGS)
 CEXEFLAGS            = -L$(HRB_DIR)\lib -lGn -lTpe -laa $(CFLAGS)
 CLIBFLAGSDEBUG       = -v $(CLIBFLAGS)

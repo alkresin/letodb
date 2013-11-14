@@ -2109,13 +2109,13 @@ static ERRCODE letoPutValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
                      pArea->pRecord[ pArea->pFieldOffset[ uiIndex ] ] = ( signed char ) lVal;
                      break;
                   case 2:
-                     HB_PUT_LE_UINT16( pArea->pRecord + pArea->pFieldOffset[ uiIndex ], ( UINT16 ) lVal );
+                     HB_PUT_LE_UINT16( pArea->pRecord + pArea->pFieldOffset[ uiIndex ], ( HB_U16 ) lVal );
                      break;
                   case 3:
-                     HB_PUT_LE_UINT24( pArea->pRecord + pArea->pFieldOffset[ uiIndex ], ( UINT32 ) lVal );
+                     HB_PUT_LE_UINT24( pArea->pRecord + pArea->pFieldOffset[ uiIndex ], ( HB_U32 ) lVal );
                      break;
                   case 4:
-                     HB_PUT_LE_UINT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ], ( UINT32 ) lVal );
+                     HB_PUT_LE_UINT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ], ( HB_U32 ) lVal );
                      break;
                   case 8:
 #ifndef HB_LONG_LONG_OFF
@@ -4581,7 +4581,7 @@ HB_FUNC( LETO_ROLLBACK )
       bTransActive = FALSE;
       ulTransDataLen = uiRecsInTrans = 0;
 
-      if( ISNIL(1) || ( ISLOG(1) && hb_parl(1) ) )
+      if( HB_ISNIL(1) || ( HB_ISLOG(1) && hb_parl(1) ) )
       {
          char szData[16], *pData;
          ULONG ulLen = 6;
@@ -4601,7 +4601,7 @@ HB_FUNC( LETO_COMMITTRANSACTION )
    LETOAREAP pArea = (LETOAREAP) hb_rddGetCurrentWorkAreaPointer();
    char * pData;
    ULONG ulLen;
-   BOOL  bUnlockAll = (ISLOG(1))? hb_parl(1) : TRUE;
+   BOOL  bUnlockAll = (HB_ISLOG(1))? hb_parl(1) : TRUE;
 
    if( !bTransActive )
    {
@@ -4650,7 +4650,7 @@ HB_FUNC( LETO_SUM )
    ULONG ulLen;
    USHORT uiKeyLen;
 
-   if ( pArea && ISCHAR( 1 ) )
+   if ( pArea && HB_ISCHAR( 1 ) )
    {
       szField = hb_parc( 1 );
       if( strchr(szField, ',') == NULL && ! hb_rddFieldIndex( (AREAP) pArea, szField ) )
@@ -4659,7 +4659,7 @@ HB_FUNC( LETO_SUM )
          return;
       }
 
-      szFilter = ISCHAR( 2 ) ? hb_parc( 2 ) : "";
+      szFilter = HB_ISCHAR( 2 ) ? hb_parc( 2 ) : "";
 
       pData = szData + 4;
       sprintf( pData,"sum;%lu;%s;%s;%s;%c;", pArea->hTable,
@@ -4773,7 +4773,7 @@ HB_FUNC( LETO_ISFLTOPTIM )
 
 HB_FUNC( LETO_SETFASTAPPEND )
 {
-   BOOL b = ( ISNIL(1) )? 1 : hb_parl( 1 );
+   BOOL b = ( HB_ISNIL(1) )? 1 : hb_parl( 1 );
    hb_retl( bFastAppend );
    bFastAppend = b;
 }
@@ -4784,7 +4784,7 @@ HB_FUNC( LETO_CLOSEALL )
    char szAddr[96];
    int iPort;
 
-   if( ISCHAR(1) )
+   if( HB_ISCHAR(1) )
    {
       if( leto_getIpFromPath( hb_parc(1), szAddr, &iPort, NULL, FALSE ) )
           pConnection = leto_ConnectionFind( szAddr, iPort );

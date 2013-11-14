@@ -344,7 +344,7 @@ HB_FUNC( GETCMDITEM )
       if ( ulStart > ulSize )
       {
          hb_retc( NULL );
-         if ISBYREF( 3 ) hb_storni( 0, 3 );
+         if( HB_ISBYREF( 3 ) ) hb_storni( 0, 3 );
       }
       else
       {
@@ -352,7 +352,7 @@ HB_FUNC( GETCMDITEM )
          if ( ulAt > 0)
             ulAt += ( ulStart - 1 );
 
-         if ISBYREF( 3 )
+         if( HB_ISBYREF( 3 ) )
             hb_storni( ulAt, 3 );
 
          if ( ulAt != 0)
@@ -387,7 +387,7 @@ HB_FUNC( GETCMDITEM )
    }
    else
    {
-      if ISBYREF( 3 )
+      if( HB_ISBYREF( 3 ) )
          hb_storni( 0, 3 );
       hb_retc( NULL );
    }
@@ -615,7 +615,7 @@ HB_FUNC( LETO_SETAPPOPTIONS )
 {
    USHORT uiLen;
 
-   if( !ISNIL(1) )
+   if( !HB_ISNIL(1) )
    {
       uiLen = (USHORT) hb_parclen(1);
       pDataPath = (char*) hb_xgrab( uiLen+1 );
@@ -630,7 +630,7 @@ HB_FUNC( LETO_SETAPPOPTIONS )
    bPass4M   = hb_parl(6);
    bPass4D   = hb_parl(7);
 
-   if( !ISNIL(8) )
+   if( !HB_ISNIL(8) )
    {
       uiLen = (USHORT) hb_parclen(8);
       pAccPath = (char*) hb_xgrab( uiLen+1 );
@@ -642,11 +642,11 @@ HB_FUNC( LETO_SETAPPOPTIONS )
    bShareTables = hb_parl(10);
    bNoSaveWA = hb_parl(11);
 
-   if( ISNUM(12) )
+   if( HB_ISNUM(12) )
       ulVarsMax = hb_parnl(12);
-   if( ISNUM(13) )
+   if( HB_ISNUM(13) )
       uiVarLenMax = hb_parnl(13);
-   if( ISNUM(14) )
+   if( HB_ISNUM(14) )
       uiCacheRecords = hb_parnl(14);
 }
 
@@ -678,7 +678,7 @@ HB_FUNC( LETO_SETSHARED )
 {
    PTABLESTRU pTStru = s_tables + hb_parni( 1 );
    BOOL bRes = pTStru->bShared;
-   if( ISLOG(2) )
+   if( HB_ISLOG(2) )
       pTStru->bShared = hb_parl( 2 );
 
    hb_retl( bRes );
@@ -687,7 +687,7 @@ HB_FUNC( LETO_SETSHARED )
 HB_FUNC( LETO_TABLENAME )
 {
    ULONG ulAreaID = (ULONG) hb_parnl(1);
-   USHORT nUserStru = (ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
+   USHORT nUserStru = (HB_ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
    PAREASTRU pAStru;
    PUSERSTRU pUStru = s_users + nUserStru;
 
@@ -720,7 +720,7 @@ char * leto_RealAlias( PUSERSTRU pUStru, char * szClientAlias )
 HB_FUNC( LETO_ALIAS )
 {
    USHORT nUserStru = (USHORT) hb_parni( 1 );
-   if( ISNUM(1) && ISCHAR(2) && ( nUserStru < uiUsersMax ) )
+   if( HB_ISNUM(1) && HB_ISCHAR(2) && ( nUserStru < uiUsersMax ) )
    {
       hb_retc_buffer( leto_RealAlias( s_users + nUserStru, hb_parc(2) ) );
    }
@@ -731,10 +731,10 @@ HB_FUNC( LETO_ALIAS )
 HB_FUNC( LETO_SETFILTER )
 {
    ULONG ulAreaID = (ULONG) hb_parnl(1);
-   USHORT nUserStru = (ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
+   USHORT nUserStru = (HB_ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
    PAREASTRU pAStru;
    PUSERSTRU pUStru = s_users + nUserStru;
-   PHB_ITEM pItem = (ISNIL(3))? NULL : hb_param( 3, HB_IT_BLOCK );
+   PHB_ITEM pItem = (HB_ISNIL(3))? NULL : hb_param( 3, HB_IT_BLOCK );
 
    if( ( nUserStru < uiUsersMax ) && ( pAStru = leto_FindArea( pUStru, ulAreaID ) ) != NULL )
    {
@@ -771,7 +771,7 @@ LETOTAG * leto_FindTag( PAREASTRU pAStru, const char * szOrder )
 HB_FUNC( LETO_ADDTAG )
 {
    ULONG ulAreaID = (ULONG) hb_parnl(1);
-   USHORT nUserStru = (ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
+   USHORT nUserStru = (HB_ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
    PAREASTRU pAStru;
    PUSERSTRU pUStru = s_users + nUserStru;
    USHORT nIndexStru = hb_parni(3);
@@ -896,7 +896,7 @@ int leto_GetParam( const char *szData, const char **pp2, const char **pp3, const
 HB_FUNC ( LETO_SELECTAREA )
 {
    ULONG ulAreaID = (ULONG) hb_parnl(1);
-   USHORT nUserStru = (ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
+   USHORT nUserStru = (HB_ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
    PAREASTRU pAStru = NULL;
 
    if( leto_SelectArea( ulAreaID, nUserStru, &pAStru ) && pAStru )
@@ -1146,7 +1146,7 @@ HB_FUNC( LETO_REC )
    char * szData;
    USHORT uiRealLen;
    ULONG ulAreaID = (ULONG) hb_parnl(1);
-   USHORT nUserStru = (ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
+   USHORT nUserStru = (HB_ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
    PAREASTRU pAStru;
    PUSERSTRU pUStru = s_users + nUserStru;
 
@@ -1228,7 +1228,7 @@ void leto_CloseIndex( PINDEXSTRU pIStru )
 HB_FUNC( LETO_INITINDEX )
 {
    ULONG ulAreaID = (ULONG) hb_parnl(1);
-   USHORT nUserStru = (ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
+   USHORT nUserStru = (HB_ISNIL(2))? 0 : (USHORT) hb_parni( 2 );
    PAREASTRU pAStru;
    PUSERSTRU pUStru = s_users + nUserStru;
 
@@ -1291,7 +1291,7 @@ HB_FUNC( LETO_INITINDEX )
       pIStru->uiAreas = 1;
       pIStru->BagName = szBagName;
       pIStru->bCompound = ( !pTStru->uiDriver && !leto_BagCheck( ( const char * ) pTStru->szTable, szBagName ) );
-      if( !ISNIL(4) )
+      if( !HB_ISNIL(4) )
       {
          uiLen = (USHORT) hb_parclen(4);
          szBagName = (char*) hb_xgrab( uiLen + 1 );

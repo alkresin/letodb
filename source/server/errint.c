@@ -64,8 +64,8 @@
 #define LETO_ERRCODE HB_ERRCODE
 #endif
 
-static BOOL   bErrHandlerRun = 0;
-extern void leto_errInternal( ULONG ulIntCode, const char * szText, const char * szPar1, const char * szPar2 );
+static HB_BOOL   bErrHandlerRun = 0;
+extern void leto_errInternal( HB_ULONG ulIntCode, const char * szText, const char * szPar1, const char * szPar2 );
 
 void hb_errInternalRaw( LETO_ERRCODE ulIntCode, const char * szText, const char * szPar1, const char * szPar2 )
 {
@@ -79,7 +79,7 @@ void hb_errInternalRaw( LETO_ERRCODE ulIntCode, const char * szText, const char 
    if( !bErrHandlerRun )
    {
       bErrHandlerRun = 1;
-      leto_errInternal( (ULONG) ulIntCode, szText, szPar1, szPar2 );
+      leto_errInternal( (HB_ULONG) ulIntCode, szText, szPar1, szPar2 );
    }
    else
    {
@@ -88,7 +88,7 @@ void hb_errInternalRaw( LETO_ERRCODE ulIntCode, const char * szText, const char 
 
       if( hLog )
       {
-         fprintf( hLog, "Unrecoverable error %lu: ", (ULONG) ulIntCode );
+         fprintf( hLog, "Unrecoverable error %lu: ", (HB_ULONG) ulIntCode );
          if( szText )
             fprintf( hLog, "%s %s %s\n", szText, szPar1, szPar2 );
          fclose( hLog );

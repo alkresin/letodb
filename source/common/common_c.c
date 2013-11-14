@@ -52,25 +52,6 @@
  *
  */
 
-#if defined(__VERSION3__)
-#define BOOL  HB_BOOL
-#define LONG  HB_LONG
-#define ULONG HB_ULONG
-#define SHORT HB_SHORT
-#define USHORT HB_USHORT
-#define BYTE HB_BYTE
-#define TRUE HB_TRUE
-#define FALSE HB_FALSE
-#define ISNUM HB_ISNUM
-#define ISNIL HB_ISNIL
-#define ISLOG HB_ISLOG
-#define ISCHAR HB_ISCHAR
-#define ISBYREF HB_ISBYREF
-#define UINT16 HB_U16
-#define UINT32 HB_U32
-#define UINT64 HB_U64
-#endif
-
 #include "hbapi.h"
 #include "hbapiitm.h"
 #include "hbdate.h"

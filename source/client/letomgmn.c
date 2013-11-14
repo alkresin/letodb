@@ -48,25 +48,6 @@
  *
  */
 
-#if defined(__VERSION3__)
-#define BOOL  HB_BOOL
-#define LONG  HB_LONG
-#define ULONG HB_ULONG
-#define SHORT HB_SHORT
-#define USHORT HB_USHORT
-#define BYTE HB_BYTE
-#define TRUE HB_TRUE
-#define FALSE HB_FALSE
-#define ISNUM HB_ISNUM
-#define ISNIL HB_ISNIL
-#define ISLOG HB_ISLOG
-#define ISCHAR HB_ISCHAR
-#define ISBYREF HB_ISBYREF
-#define UINT16 HB_U16
-#define UINT32 HB_U32
-#define UINT64 HB_U64
-#endif
-
 #include "hbapi.h"
 #include "hbapiitm.h"
 #include "rddleto.h"
@@ -132,7 +113,7 @@ HB_FUNC( LETO_FILE )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   if( ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
+   if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
@@ -159,7 +140,7 @@ HB_FUNC( LETO_FERASE )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   if( ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
+   if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
@@ -192,7 +173,7 @@ HB_FUNC( LETO_FRENAME )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   if( ISCHAR(1) && ISCHAR(2) && (pConnection = letoParseParam( hb_parc(1), szFile) ) != NULL )
+   if( HB_ISCHAR(1) && HB_ISCHAR(2) && (pConnection = letoParseParam( hb_parc(1), szFile) ) != NULL )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
@@ -225,7 +206,7 @@ HB_FUNC( LETO_MEMOREAD )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   if( ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
+   if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       char szData[_POSIX_PATH_MAX + 16];
 
@@ -256,7 +237,7 @@ HB_FUNC( LETO_UDF )
    LETOCONNECTION * pConnection;
    char szFuncName[ HB_SYMBOL_NAME_LEN + 1 ];
 
-   if( ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFuncName ) ) != NULL )
+   if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFuncName ) ) != NULL )
    {
       char *szData = hb_xgrab( hb_parclen(1) + hb_parclen(2) + 12 );
 
@@ -287,10 +268,10 @@ HB_FUNC( LETO_CONNECT )
    LETOCONNECTION * pConnection;
    char szAddr[96];
    int iPort;
-   const char * szUser = (ISNIL(2)) ? NULL : hb_parc(2);
-   const char * szPass = (ISNIL(3)) ? NULL : hb_parc(3);
+   const char * szUser = (HB_ISNIL(2)) ? NULL : hb_parc(2);
+   const char * szPass = (HB_ISNIL(3)) ? NULL : hb_parc(3);
 
-   if( ISCHAR(1) && leto_getIpFromPath( hb_parc(1), szAddr, &iPort, NULL, FALSE ) &&
+   if( HB_ISCHAR(1) && leto_getIpFromPath( hb_parc(1), szAddr, &iPort, NULL, FALSE ) &&
        ( ( ( pConnection = leto_ConnectionFind( szAddr, iPort ) ) != NULL ) ||
          ( ( pConnection = leto_ConnectionNew( szAddr, iPort, szUser, szPass ) ) ) != NULL ) )
    {
@@ -342,7 +323,7 @@ HB_FUNC( LETO_PATH )
    if( pCurrentConn )
    {
      hb_retc( pCurrentConn->szPath ? pCurrentConn->szPath : "");
-     if( ISCHAR(1) )
+     if( HB_ISCHAR(1) )
      {
         if( pCurrentConn->szPath )
            hb_xfree( pCurrentConn->szPath );
@@ -396,7 +377,7 @@ HB_FUNC( LETO_MGGETUSERS )
 
    if( pCurrentConn )
    {
-      if( ISNIL(1) )
+      if( HB_ISNIL(1) )
          sprintf( szData, "mgmt;01;\r\n" );
       else
          sprintf( szData, "mgmt;01;%s;\r\n", hb_parc(1) );
@@ -434,7 +415,7 @@ HB_FUNC( LETO_MGGETTABLES )
 
    if( pCurrentConn )
    {
-      if( ISNIL(1) )
+      if( HB_ISNIL(1) )
          sprintf( szData, "mgmt;02;\r\n" );
       else
          sprintf( szData, "mgmt;02;%s;\r\n", hb_parc(1) );
@@ -472,7 +453,7 @@ HB_FUNC( LETO_MGKILL )
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) )
+      if( !HB_ISNIL(1) )
       {
          sprintf( szData, "mgmt;09;%s;\r\n", hb_parc(1) );
          leto_DataSendRecv( pCurrentConn, szData, 0 );
@@ -530,7 +511,7 @@ HB_FUNC( LETO_SETSKIPBUFFER )
    LETOAREAP pArea = (LETOAREAP) hb_rddGetCurrentWorkAreaPointer();
    char szData[32];
 
-   if( pArea && !ISNIL(1) )
+   if( pArea && !HB_ISNIL(1) )
    {
 
       sprintf( szData, "set;02;%lu;%d;\r\n", pArea->hTable, hb_parni(1) );
@@ -542,13 +523,13 @@ HB_FUNC( LETO_USERADD )
 {
    char szData[96];
    char szPass[54];
-   const char * szAccess = ( ISNIL(3) )? "" : hb_parc(3);
+   const char * szAccess = ( HB_ISNIL(3) )? "" : hb_parc(3);
    ULONG ulLen;
    char szKey[LETO_MAX_KEYLENGTH+1];
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          if( ( ulLen = hb_parclen(2) ) > 0 )
          {
@@ -590,7 +571,7 @@ HB_FUNC( LETO_USERPASSWD )
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          if( ( ulLen = hb_parclen(2) ) > 0 )
          {
@@ -629,7 +610,7 @@ HB_FUNC( LETO_USERRIGHTS )
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          sprintf( szData, "admin;uacc;%s;%s;\r\n", hb_parc(1), hb_parc(2) );
          if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
@@ -676,27 +657,27 @@ HB_FUNC( LETO_VARSET )
    ULONG ulLen;
    LONG lValue;
    BOOL bRes = 0;
-   USHORT uiFlags = (ISNIL(4))? 0 : hb_parni(4);
-   BOOL bPrev = ISBYREF( 5 );
+   USHORT uiFlags = (HB_ISNIL(4))? 0 : hb_parni(4);
+   BOOL bPrev = HB_ISBYREF( 5 );
 
    iFError = 0;
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) && !ISNIL(3) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) && !HB_ISNIL(3) )
       {
          ulLen = 24 + hb_parclen(1) + hb_parclen(2);
-         if( ISLOG(3) )
+         if( HB_ISLOG(3) )
          {
             ulLen += 2;
             cType = '1';
          }
-         else if( ISNUM(3) )
+         else if( HB_ISNUM(3) )
          {
             sprintf( szLong, "%ld", hb_parnl(3) );
             ulLen += strlen( szLong );
             cType = '2';
          }
-         else if( ISCHAR(3) )
+         else if( HB_ISCHAR(3) )
          {
             ulLen += hb_parclen(3);
             cType = '3';
@@ -797,7 +778,7 @@ HB_FUNC( LETO_VARGET )
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          pData = ( char * ) malloc( 16 + hb_parclen(1) + hb_parclen(2) );
          sprintf( pData, "var;get;%s;%s;\r\n", hb_parc(1), hb_parc(2) );
@@ -845,11 +826,11 @@ HB_FUNC( LETO_VARINCR )
    char *pData, *ptr;
    char cType, cFlag1 = ' ';
    LONG lValue;
-   USHORT uiFlags = (ISNIL(3))? 0 : hb_parni(3);
+   USHORT uiFlags = (HB_ISNIL(3))? 0 : hb_parni(3);
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          cFlag1 |= ( uiFlags & ( LETO_VCREAT | LETO_VOWN | LETO_VDENYWR | LETO_VDENYRD ) );
          if( uiFlags & LETO_VOWN )
@@ -882,11 +863,11 @@ HB_FUNC( LETO_VARDECR )
    char *pData, *ptr;
    char cType, cFlag1 = ' ';
    LONG lValue;
-   USHORT uiFlags = (ISNIL(3))? 0 : hb_parni(3);
+   USHORT uiFlags = (HB_ISNIL(3))? 0 : hb_parni(3);
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          cFlag1 |= ( uiFlags & ( LETO_VCREAT | LETO_VOWN | LETO_VDENYWR | LETO_VDENYRD ) );
          if( uiFlags & LETO_VOWN )
@@ -922,7 +903,7 @@ HB_FUNC( LETO_VARDEL )
 
    if( pCurrentConn )
    {
-      if( !ISNIL(1) && !ISNIL(2) )
+      if( !HB_ISNIL(1) && !HB_ISNIL(2) )
       {
          pData = ( char * ) malloc( 16 + hb_parclen(1) + hb_parclen(2) );
          sprintf( pData, "var;del;%s;%s;\r\n", hb_parc(1), hb_parc(2) );
@@ -949,11 +930,11 @@ HB_FUNC( LETO_VARDEL )
 HB_FUNC( LETO_VARGETLIST )
 {
    char *pData, *ptr;
-   char *pGroup = (ISNIL(1))? NULL : hb_parc(1);
+   char *pGroup = (HB_ISNIL(1))? NULL : hb_parc(1);
    char szData[24], cType;
    LONG lValue;
    USHORT uiItems = 0, ui;
-   USHORT uiMaxLen = (ISNUM(2))? hb_parni(2) : 0;
+   USHORT uiMaxLen = (HB_ISNUM(2))? hb_parni(2) : 0;
 
    if( pCurrentConn )
    {
