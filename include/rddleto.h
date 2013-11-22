@@ -56,6 +56,13 @@
 
 HB_EXTERN_BEGIN
 
+typedef struct _CDPSTRU
+{
+   char *      szClientCdp;
+   char *      szServerCdp;
+   struct _CDPSTRU * pNext;
+} CDPSTRU, *PCDPSTRU;
+
 typedef struct _LETOCONNECTION_
 {
    HB_SOCKET_T hSocket;
@@ -71,9 +78,28 @@ typedef struct _LETOCONNECTION_
    char        cDopcode[2];
    BOOL        bCrypt;
    BOOL        bCloseAll;
-} LETOCONNECTION;
+   PCDPSTRU    pCdpTable;
 
-#define MAX_CONNECTIONS_NUMBER   5
+   BOOL        bTransActive;
+   BYTE *      szTransBuffer;
+   ULONG       ulTransBuffLen;
+   ULONG       ulTransDataLen;
+   ULONG       ulRecsInTrans;
+   ULONG       ulTransBlockLen;
+
+   BOOL        bRefreshCount;
+
+   char *      pBufCrypt;
+   ULONG       ulBufCryptLen;
+
+/* uiBufRefreshTime defines the time interval in 0.01 sec. After this 
+   time is up, the records buffer must be refreshed, 100 by default */
+   USHORT      uiBufRefreshTime;
+
+   USHORT      uiDriver;
+   USHORT      uiMemoType;
+
+} LETOCONNECTION;
 
 typedef struct _LETOTAGINFO
 {
@@ -139,7 +165,7 @@ typedef struct _LETOAREA_
    BOOL     fReadonly;           /* Read only file */
    BOOL     fFLocked;            /* TRUE if file is locked */
 
-   LETOCONNECTION * pConnection; /* connection */
+   USHORT   uiConnection;        /* connection number */
    ULONG    hTable;              /* ID of a table, gotten from the server */
    USHORT   uiDriver;            /* 0 id DBFCDX, 1 if DBFNTX */
    LETOTAGINFO * pTagInfo;

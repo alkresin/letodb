@@ -84,7 +84,7 @@ Public oApp
    INIT WINDOW oApp:oMainWnd MAIN TITLE "Server management utility" ;
      AT 200,0 SIZE 600,400 FONT HFont():Add( "Georgia",0,-15,,204 )
 
-   @ 0,0 PANEL oApp:oTool OF oApp:oMainWnd SIZE oApp:oMainWnd:nWidth,56
+   @ 0,0 PANEL oApp:oTool OF oApp:oMainWnd SIZE 0,56
 
    @ 10,2 COMBOBOX oApp:oCombo ITEMS oApp:aServers SIZE 140, 22 EDIT OF oApp:oTool ;
       ON CHANGE {||onComboChg()}
