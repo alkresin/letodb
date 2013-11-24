@@ -4061,12 +4061,19 @@ static ERRCODE letoClearFilter( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoClearFilter(%p)", pArea));
 
+#ifndef __BM
    if( pArea->hTable && pArea->area.dbfi.itmCobExpr )
+#else
+   if( pArea->hTable && ( pArea->area.dbfi.itmCobExpr || pArea->area.dbfi.lpvCargo ) )
+#endif
    {
       sprintf( szData,"setf;%lu;;\r\n", pArea->hTable );
       if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
    }
 
+#ifdef __BM
+   pArea->area.dbfi.lpvCargo = NULL;
+#endif
    return SUPER_CLEARFILTER( ( AREAP ) pArea );
 }
 
@@ -4372,7 +4379,7 @@ static ERRCODE letoInit( LPRDDNODE pRDD )
    uiConnCount = 1;
    memset( letoConnPool, 0, sizeof(LETOCONNECTION) * uiConnCount );
 
-   s_szBuffer = (char*) malloc(HB_SENDRECV_BUFFER_SIZE);
+   s_szBuffer = (char*) hb_xgrab(HB_SENDRECV_BUFFER_SIZE);
    s_lBufferLen = HB_SENDRECV_BUFFER_SIZE;
    return SUCCESS;
 }
@@ -4395,7 +4402,10 @@ static ERRCODE letoExit( LPRDDNODE pRDD )
    {
       if( ! --s_uiRddCount )
       {
-         free( s_szBuffer );
+         if( s_szBuffer )
+            hb_xfree( s_szBuffer );
+         s_szBuffer = NULL;
+         s_lBufferLen = 0;
 #ifdef __BORLANDC__
    #pragma option push -w-pro
 #endif
@@ -4412,6 +4422,19 @@ static ERRCODE letoExit( LPRDDNODE pRDD )
    return SUCCESS;
 }
 
+static USHORT letoMemoType( ULONG ulConnect )
+{
+  LETOCONNECTION * pConnection = ( ulConnect > 0 && ulConnect <= (ULONG) uiConnCount ) ?
+     letoConnPool + ulConnect - 1 : pCurrentConn;
+  USHORT uiMemoType;
+  if( pConnection && pConnection->uiMemoType )
+     uiMemoType = pConnection->uiMemoType;
+  else if( pConnection )
+     uiMemoType = pConnection->uiDriver == LETO_NTX ? DB_MEMO_DBT : DB_MEMO_FPT;
+  else
+     uiMemoType = DB_MEMO_FPT;
+  return uiMemoType;
+}
 
 static ERRCODE letoRddInfo( LPRDDNODE pRDD, USHORT uiIndex, ULONG ulConnect, PHB_ITEM pItem )
 {
@@ -4422,16 +4445,19 @@ static ERRCODE letoRddInfo( LPRDDNODE pRDD, USHORT uiIndex, ULONG ulConnect, PHB
       case RDDI_REMOTE:
          hb_itemPutL( pItem, TRUE );
          break;
-/*
       case RDDI_CONNECTION:
-      {     
-         ADSHANDLE hOldConnection = adsConnectHandle;
+      {
+         USHORT uiConnection = ( pCurrentConn ? pCurrentConn - letoConnPool + 1 : 0 );
 
-         adsConnectHandle = HB_ADS_GETCONNECTION( pItem );
-         HB_ADS_PUTCONNECTION( pItem, hOldConnection );
+         if( HB_IS_NUMBER( pItem ) )
+         {
+            USHORT uiNewConn = hb_itemGetNI( pItem );
+            if( uiNewConn && uiNewConn <= uiConnCount )
+               pCurrentConn = letoConnPool + uiNewConn - 1;
+         }
+         hb_itemPutNI( pItem, uiConnection );
          break;
       }
-*/
       case RDDI_ISDBF:
          hb_itemPutL( pItem, TRUE );
          break;
@@ -4441,17 +4467,35 @@ static ERRCODE letoRddInfo( LPRDDNODE pRDD, USHORT uiIndex, ULONG ulConnect, PHB
          break;
 
       case RDDI_TABLEEXT:
-         hb_itemPutC( pItem, "dbf" );
+         hb_itemPutC( pItem, ".dbf" );
          break;
 
       case RDDI_MEMOEXT:
-         hb_itemPutC( pItem, "fpt" );
+         hb_itemPutC( pItem, letoMemoType( ulConnect ) == DB_MEMO_DBT ? ".dbt" : ".fpt" );
+         break;
+
+      case RDDI_MEMOTYPE:
+         hb_itemPutNI( pItem, letoMemoType( ulConnect ) );
          break;
 
       case RDDI_ORDEREXT:
       case RDDI_ORDBAGEXT:
       case RDDI_ORDSTRUCTEXT:
-         hb_itemPutC( pItem, "cdx" );
+         hb_itemPutC( pItem, ".cdx" );
+         break;
+
+      case RDDI_REFRESHCOUNT:
+         if( ulConnect > 0 && ulConnect <= (ULONG) uiConnCount )
+         {
+            LETOCONNECTION * pConnection = letoConnPool + ulConnect - 1;
+            BOOL bSet = HB_IS_LOGICAL( pItem );
+            BOOL bRefresh = hb_itemGetL( pItem );
+            hb_itemPutL( pItem, pConnection->bRefreshCount );
+            if( bSet )
+               pConnection->bRefreshCount = bRefresh;
+         }
+         else
+            hb_itemPutL( pItem, TRUE );
          break;
 
       default:
