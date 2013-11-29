@@ -52,8 +52,6 @@
 #include "funcleto.h"
 #include "rddleto.ch"
 
-#define HB_RDD_LETO_VERSION_STRING   "0.95"
-
 HB_EXTERN_BEGIN
 
 typedef struct _CDPSTRU
@@ -101,6 +99,16 @@ typedef struct _LETOCONNECTION_
 
 } LETOCONNECTION;
 
+typedef struct _LETOBUFFER_
+{
+   BYTE *      pBuffer;          /* Buffer for records */
+   ULONG       ulBufLen;         /* allocated buffer length */
+   ULONG       ulBufDataLen;     /* data length in buffer */
+   BOOL        bSetDeleted;      /* current _SET_DELETED flag */
+   ULONG       ulDeciSec;        /* buffer time in 1/100 seconds */
+   USHORT      uiShoots;         /* using statistic */
+} LETOBUFFER;
+
 typedef struct _LETOTAGINFO
 {
    char *      BagName;
@@ -112,9 +120,23 @@ typedef struct _LETOTAGINFO
    BYTE        KeyType;
    USHORT      KeySize;
    USHORT      uiTag;
+   USHORT      nField;           /* Field number for simple (one field) key expersion */
    PHB_ITEM    pTopScope;
    PHB_ITEM    pBottomScope;
+   char *      pTopScopeAsString;
+   char *      pBottomScopeAsString;
+   int         iTopScopeAsString;
+   int         iBottomScopeAsString;
    BOOL        UsrAscend;        /* user settable ascending/descending order flag */
+   BOOL        Custom;           /* user settable custom order flag */
+
+   LETOBUFFER  Buffer;           /* seek buffer */
+   USHORT      uiBufSize;        /* records count in buffer */
+   USHORT      uiRecInBuf;       /* current records in buffer*/
+
+   USHORT      uiFCount;         /* index fields count */
+   USHORT *    puiFields;        /* index fields array */
+
    struct _LETOTAGINFO * pNext;
 } LETOTAGINFO;
 
@@ -175,6 +197,15 @@ typedef struct _LETOAREA_
    ULONG *     pLocksPos;              /* List of records locked */
    ULONG       ulLocksMax;             /* Number of records locked */
    ULONG       ulLocksAlloc;           /* Number of records locked (allocated) */
+
+   char     szMemoExt[HB_MAX_FILE_EXT + 1];    /* MEMO file extension */
+   BYTE     bMemoType;           /* MEMO type used in DBF memo fields */
+   USHORT   uiMemoVersion;       /* MEMO file version */
+
+   USHORT   uiSkipBuf;           /* skip buffer size */
+
+   LONG     lLastUpdate;         /* from dbf header: last update */
+   SHORT    iBufRefreshTime;
 
 } LETOAREA;
 

@@ -82,6 +82,8 @@
    #define HB_SOCKET_T int
 #endif
 
+#define HB_LETO_VERSION_STRING   "0.95"
+
 #define LETO_MAX_USERNAME      16
 #define LETO_PASSWORD "hE8Q,jy5+R"
 #define LETO_MAX_KEYLENGTH     15
@@ -144,6 +146,10 @@
 
 #if ! defined( _POSIX_PATH_MAX )
   #define _POSIX_PATH_MAX HB_PATH_MAX
+#endif
+
+#if defined (__XHARBOUR__) || !defined(__HARBOUR__) || ( (__HARBOUR__ - 0) < 0x020000 )
+   #define HB_MAXINT    HB_LONG
 #endif
 
 #define LETO_FLG_BOF          1
