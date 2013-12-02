@@ -167,6 +167,7 @@ typedef struct _LETOAREA_
    ULONG    ulRecNo;             /* Current record */
    BYTE *   pRecord;             /* Buffer of record data */
 
+   LETOBUFFER  Buffer;           /* skip buffer */
    BYTE *   pBuffer;             /* Buffer for records */
    BYTE *   ptrBuf;
    ULONG    ulBufLen;
