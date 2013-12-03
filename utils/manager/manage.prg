@@ -86,8 +86,10 @@ Public oApp
 
    @ 0,0 PANEL oApp:oTool OF oApp:oMainWnd SIZE 0,56
 
-   @ 10,2 COMBOBOX oApp:oCombo ITEMS oApp:aServers SIZE 140, 22 EDIT OF oApp:oTool ;
-      ON CHANGE {||onComboChg()}
+   @ 10,2 COMBOBOX oApp:oCombo ITEMS oApp:aServers SIZE 140, 22 EDIT DISPLAYCOUNT 4;
+      OF oApp:oTool ON CHANGE {||onComboChg()} STYLE CBS_DROPDOWN + CBS_AUTOHSCROLL ;
+      TOOLTIP "Server ip address or name"
+
    @ 150,2 GET oApp:oGetPort VAR nPort SIZE 50,24 OF oApp:oTool PICTURE "9999"
    @ 200,2 BUTTON oApp:oBtnGo CAPTION "Go" SIZE 40, 24 OF oApp:oTool ON CLICK {||GoConnect()}
    @ 250,10 GET UPDOWN oApp:oGetRefr VAR nRefr RANGE 1,60 OF oApp:oTool SIZE 50,32

@@ -8,7 +8,7 @@ if not exist lib md lib
 if not exist obj md obj
 if not exist obj\w32 md obj\w32
 
-   rem set path=c:\softools\mingw\bin
+   set path=c:\softools\mingw\bin
    mingw32-make.exe -f makefile.gcc >make_mingw.log
    if errorlevel 1 goto BUILD_ERR
 

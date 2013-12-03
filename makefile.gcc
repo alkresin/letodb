@@ -27,7 +27,7 @@ SERVER_DIR = source\server
 CLIENT_DIR = source\client
 COMMON_DIR = source\common
 
-CFLAGS = -Wall -mno-cygwin
+CFLAGS = -Wall
 HARBOURFLAGS = -i$(INCLUDE_DIR) -n -q0 -w -es2 -gc0 -d$(SRV_MODE) $(PRG_USR)
 
 all: \
