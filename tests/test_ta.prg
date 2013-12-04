@@ -5,7 +5,8 @@
  */
 
 Function Main
-Local cPath := "//127.0.0.1:2812/temp/"
+Local cPath := "//199.10.11.5:2812/temp/"
+Field NORD, DORD, NPROD, SUMMA
 
    REQUEST LETO
    RDDSETDEFAULT( "LETO" )
@@ -27,8 +28,11 @@ Local cPath := "//127.0.0.1:2812/temp/"
 
    select NAKL2
    if dbSeek( Dtos(Date())+Str(1,10)+Str(2,3) )
-      ChangeNakl( 35688.24 )
-      ? "Records has been changed"
+      if ChangeNakl( 35688.24 )
+         ? "Records has been changed"
+      else
+         ? "Failure - Rollback"
+      endif
    endif
 
    ? "End"

@@ -96,6 +96,8 @@
    #define __OLDRDD__
 #endif
 
+#define LETO_MSGSIZE_LEN       0
+
 #if !( defined( HB_FT_STRING ) )
 #define HB_FT_STRING          HB_IT_STRING
 #define HB_FT_LOGICAL         HB_IT_LOGICAL
@@ -136,6 +138,10 @@
    #if ! defined(HB_VER_CVSID) || ( HB_VER_CVSID >= 6380 )
       typedef HB_ERRCODE ERRCODE;
    #endif
+#endif
+
+#if !defined( HB_PFS )
+   #define HB_PFS "l"
 #endif
 
 #if defined( HB_IO_WIN )

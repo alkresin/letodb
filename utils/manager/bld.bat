@@ -46,7 +46,8 @@ if exist %HRB_DIR%\lib\rddntx.lib echo %HRB_DIR%\lib\rddntx.lib + >> b32.bc
 if exist %HRB_DIR%\lib\rddfpt.lib echo %HRB_DIR%\lib\rddfpt.lib + >> b32.bc
 if exist %HRB_DIR%\lib\hbsix.lib echo %HRB_DIR%\lib\hbsix.lib + >> b32.bc
 
-echo %HRB_DIR%\lib\rddleto.lib + >> b32.bc
+rem echo %HRB_DIR%\lib\rddleto.lib + >> b32.bc
+echo ..\..\lib\rddleto.lib + >> b32.bc
 if exist %HRB_DIR%\lib\rdd%HB_MT%.lib echo %HRB_DIR%\lib\rdd%HB_MT% + >> b32.bc
 if exist %HRB_DIR%\lib\hbrdd.lib echo %HRB_DIR%\lib\hbrdd.lib + >> b32.bc
 

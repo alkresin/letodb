@@ -694,6 +694,15 @@ HB_FUNC( LETO_GETSERVERVERSION )
       hb_retc( "" );
 }
 
+HB_FUNC( LETO_GETSRVVER )
+{
+   LETOCONNECTION * pConnection = leto_getConnection( 2 );
+   if( pConnection )
+      hb_retni( pConnection->uiMajorVer*100 + pConnection->uiMinorVer );
+   else
+      hb_ret();
+}
+
 HB_FUNC( LETO_PATH )
 {
    LETOCONNECTION * pConnection = leto_getConnection( 2 );

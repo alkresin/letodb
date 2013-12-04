@@ -165,15 +165,12 @@ typedef struct _LETOAREA_
    char *   szDataFileName;      /* Name of data file */
    USHORT   uiRecordLen;         /* Size of record */
    ULONG    ulRecNo;             /* Current record */
+   ULONG    ulRecCount;          /* Count of records */
    BYTE *   pRecord;             /* Buffer of record data */
 
    LETOBUFFER  Buffer;           /* skip buffer */
-   BYTE *   pBuffer;             /* Buffer for records */
    BYTE *   ptrBuf;
-   ULONG    ulBufLen;
-   ULONG    ulBufDataLen;
    USHORT   uiRecInBuf;
-   ULONG    ulDeciSec;
    signed char BufDirection;
 
    USHORT   uiUpdated;
@@ -221,10 +218,6 @@ typedef USHORT ( * DBENTRYP_RVVL )( struct _RDDNODE * pRDD, PHB_ITEM p1, PHB_ITE
 #define LETO_MAX_KEY        256     /* Max len of key */
 #define LETO_MAX_EXP        256     /* Max len of KEY/FOR expression */
 #define LETO_MAX_TAGNAME     10     /* Max len of tag name */
-
-/* BUFF_REFRESH_TIME defines the time interval in 0.01 sec. After this 
-   time is up, the records buffer must be refreshed */
-#define BUFF_REFRESH_TIME   100
 
 #if ! defined( HB_RDD_MAX_DRIVERNAME_LEN ) && defined( HARBOUR_MAX_RDD_DRIVERNAME_LENGTH )
    #define  HB_RDD_MAX_DRIVERNAME_LEN HARBOUR_MAX_RDD_DRIVERNAME_LENGTH
