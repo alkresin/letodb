@@ -694,15 +694,6 @@ HB_FUNC( LETO_GETSERVERVERSION )
       hb_retc( "" );
 }
 
-HB_FUNC( LETO_GETSRVVER )
-{
-   LETOCONNECTION * pConnection = leto_getConnection( 2 );
-   if( pConnection )
-      hb_retni( pConnection->uiMajorVer*100 + pConnection->uiMinorVer );
-   else
-      hb_ret();
-}
-
 HB_FUNC( LETO_PATH )
 {
    LETOCONNECTION * pConnection = leto_getConnection( 2 );
@@ -906,7 +897,26 @@ HB_FUNC( LETO_SETSKIPBUFFER )
             leto_DataSendRecv( pConnection, szData, 0 );
          }
       }
-      //hb_retni( pArea->Buffer.uiShoots );
+      hb_retni( pArea->Buffer.uiShoots );
+   }
+   else
+      hb_retni( 0 );
+}
+
+HB_FUNC( LETO_SETSEEKBUFFER )
+{
+   LETOAREAP pArea = (LETOAREAP) hb_rddGetCurrentWorkAreaPointer();
+
+   if( leto_CheckArea( pArea ) && pArea->pTagCurrent )
+   {
+      if( HB_ISNUM(1) )
+      {
+         USHORT uiNum = hb_parni( 1 );
+         pArea->pTagCurrent->uiBufSize = uiNum;
+         if( uiNum == 0 )
+            pArea->pTagCurrent->Buffer.ulBufDataLen = 0;
+      }
+      hb_retni( pArea->pTagCurrent->Buffer.uiShoots );
    }
    else
       hb_retni( 0 );
@@ -1041,6 +1051,41 @@ HB_FUNC( LETO_USERGETRIGHTS )
    {
       hb_retclen( pCurrentConn->szAccess,3 );
    }
+}
+
+HB_FUNC( LETO_LOCKCONN )
+{
+   char szData[24];
+
+   if( HB_ISLOG(1) && pCurrentConn )
+   {
+      hb_snprintf( szData, 24, "admin;lockc;%c;\r\n", ( hb_parl(1) ? 'T' : 'F' ) );
+      if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
+      {
+         char * ptr = leto_firstchar();
+         hb_retl( *ptr == '+' );
+         return;
+      }
+   }
+   hb_retl( 0 );
+}
+
+HB_FUNC( LETO_LOCKLOCK )
+{
+   char szData[24];
+
+   if( pCurrentConn )
+   {
+      USHORT uiSecs = HB_ISNUM(2) ? hb_parni(2) : 30;
+      hb_snprintf( szData, 24, "admin;lockl;%c;%d;\r\n", ( HB_ISLOG(1) ? ( hb_parl(1) ? 'T' : 'F' ) : '?'), uiSecs );
+      if( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
+      {
+         char * ptr = leto_firstchar();
+         hb_retl( *ptr == '+' );
+         return;
+      }
+   }
+   hb_retl( 0 );
 }
 
 HB_FUNC( LETO_VARSET )
