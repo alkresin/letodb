@@ -6,8 +6,12 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2013-12-05 15:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Client side is fully synhronized with SVN version.
+    Now client apps can work with both old (0.95) and new (2.12) servers.
+
 2013-11-14 13:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
-  * All ISNIL(), ISNUM(),... are chandeg to HB_ISNIL(), HB_ISNUM(),...
+  * All ISNIL(), ISNUM(),... are changed to HB_ISNIL(), HB_ISNUM(),...
     for compatibility with Harbour 3.
 
 2010-08-20 18:30 UTC+0300 Pavel Tsarenko (tpe2/at/mail.ru)
