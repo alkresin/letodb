@@ -59,6 +59,9 @@
    #elif __HARBOUR__ - 0 < 0x000100
       #define HARBOUR_VER_BEFORE_100
    #endif
+   #if __HARBOUR__ - 0 <= 0x020000
+      typedef HB_U32 HB_FATTR;
+   #endif
 #endif
 
 #if ( defined( HB_OS_WIN_32 )  || defined( HB_OS_WIN ) ) && !defined( WIN32 )
@@ -82,7 +85,7 @@
    #define HB_SOCKET_T int
 #endif
 
-#define HB_LETO_VERSION_STRING   "0.95"
+#define HB_LETO_VERSION_STRING   "2.12"
 
 #define LETO_MAX_USERNAME      16
 #define LETO_PASSWORD "hE8Q,jy5+R"
@@ -96,7 +99,7 @@
    #define __OLDRDD__
 #endif
 
-#define LETO_MSGSIZE_LEN       0
+#define LETO_MSGSIZE_LEN      4
 
 #if !( defined( HB_FT_STRING ) )
 #define HB_FT_STRING          HB_IT_STRING
@@ -139,7 +142,6 @@
       typedef HB_ERRCODE ERRCODE;
    #endif
 #endif
-
 #if !defined( HB_PFS )
    #define HB_PFS "l"
 #endif
@@ -154,8 +156,60 @@
   #define _POSIX_PATH_MAX HB_PATH_MAX
 #endif
 
+#if defined( __XHARBOUR__ ) || ( __HARBOUR__ - 0 < 0x020000 )
+   #if !defined( __XHARBOUR__ )
+      #define HB_LONG         LONG
+      #define HB_ULONG        ULONG
+   #endif
+
+   typedef unsigned char   HB_BYTE;
+   typedef int             HB_BOOL;
+   typedef unsigned short  HB_USHORT;
+   typedef ULONG           HB_SIZE;
+#elif !defined( FALSE )
+   #define FALSE           HB_FALSE
+   #define TRUE            HB_TRUE
+   #define BOOL            HB_BOOL
+   #define BYTE            HB_BYTE
+   #define SHORT           HB_SHORT
+   #define USHORT          HB_USHORT
+   #define LONG            HB_LONG
+   #define ULONG           HB_ULONG
+   #define UINT            HB_UINT
+   #define UINT32          HB_U32
+   #define UINT64          HB_U64
+#endif
+
+#if !defined( HB_FALSE )
+   #define HB_FALSE      0
+#endif
+#if !defined( HB_TRUE )
+   #define HB_TRUE       (!0)
+#endif
+#if !defined( HB_ISNIL )
+   #define HB_ISNIL( n )         ISNIL( n )
+   #define HB_ISCHAR( n )        ISCHAR( n )
+   #define HB_ISNUM( n )         ISNUM( n )
+   #define HB_ISLOG( n )         ISLOG( n )
+   #define HB_ISDATE( n )        ISDATE( n )
+   #define HB_ISMEMO( n )        ISMEMO( n )
+   #define HB_ISBYREF( n )       ISBYREF( n )
+   #define HB_ISARRAY( n )       ISARRAY( n )
+   #define HB_ISOBJECT( n )      ISOBJECT( n )
+   #define HB_ISBLOCK( n )       ISBLOCK( n )
+   #define HB_ISPOINTER( n )     ISPOINTER( n )
+   #define HB_ISHASH( n )        ISHASH( n )
+   #define HB_ISSYMBOL( n )      ISSYMBOL( n )
+#endif
+
 #if defined (__XHARBOUR__) || !defined(__HARBOUR__) || ( (__HARBOUR__ - 0) < 0x020000 )
    #define HB_MAXINT    HB_LONG
+#endif
+
+#if !defined( HB_ISFIRSTIDCHAR )
+   #define HB_ISDIGIT( c )         ( ( c ) >= '0' && ( c ) <= '9' )
+   #define HB_ISFIRSTIDCHAR( c )   ( c >= 'A' && c <= 'Z' ) || c == '_' || ( c >= 'a' && c <= 'z' )
+   #define HB_ISNEXTIDCHAR( c )    ( HB_ISFIRSTIDCHAR(c) || HB_ISDIGIT( c ) )
 #endif
 
 #define LETO_FLG_BOF          1
@@ -185,7 +239,7 @@ extern int leto_n2cb( char *s, unsigned long int n, int iLenLen );
 extern long int leto_b2n( const char *s, int iLenLen );
 extern char * leto_AddLen( char * pData, ULONG * uiLen, BOOL lBefore );
 extern int leto_BagCheck( const char * szTable, const char * szBagName );
-extern void leto_writelog( const char* s, int n );
+extern void leto_writelog( const char * sFile, const char * sTraceMsg, ... );
 extern void leto_encrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
 extern void leto_decrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
 extern void leto_byte2hexchar( const char * ptri, int iLen, char * ptro );

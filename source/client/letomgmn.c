@@ -283,7 +283,7 @@ HB_FUNC( LETO_FILEREAD )
                   return;
                }
                else
-                  leto_writelog( "!Error! LETO_FREAD! (message length > packet)", 0 );
+                  leto_writelog( NULL,"!Error! LETO_FREAD! (message length > packet)" );
             }
             else
             {
@@ -294,7 +294,7 @@ HB_FUNC( LETO_FILEREAD )
       }
       else
       {
-         leto_writelog( "!Error! LETO_FREAD! broken message (length < 5)", 0 );
+         leto_writelog( NULL,"!Error! LETO_FREAD! broken message (length < 5)" );
       }
    }
 

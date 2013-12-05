@@ -163,7 +163,7 @@ void leto_metka( int iMode, char * s1, char * s2 )
          USHORT i;
          leto_ThreadMutexDestroy( &mutex_carr );
          for( i=0; i<uiarr1len; i++ )
-            leto_writelog(carr1[i], 0);
+            leto_writelog( NULL, carr1[i] );
          break;
       }
    }
@@ -343,11 +343,7 @@ LETO_THREAD_FUNC thread2( void * Cargo )
          // leto_metka( 1, "T2 ", s );
       }
       else
-      {
-         char s[40];
-         sprintf(s,"thread2-2 %d",iRes );
-         leto_writelog( s, 0 );
-      }
+         leto_writelog( NULL, "thread2-2 %d",iRes );
    }
    return 0;
 }

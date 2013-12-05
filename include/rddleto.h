@@ -97,6 +97,9 @@ typedef struct _LETOCONNECTION_
    USHORT      uiDriver;
    USHORT      uiMemoType;
 
+   USHORT      uiProto;
+   USHORT      uiTBufOffset;
+
 } LETOCONNECTION;
 
 typedef struct _LETOBUFFER_
@@ -218,6 +221,7 @@ typedef USHORT ( * DBENTRYP_RVVL )( struct _RDDNODE * pRDD, PHB_ITEM p1, PHB_ITE
 #define LETO_MAX_KEY        256     /* Max len of key */
 #define LETO_MAX_EXP        256     /* Max len of KEY/FOR expression */
 #define LETO_MAX_TAGNAME     10     /* Max len of tag name */
+
 
 #if ! defined( HB_RDD_MAX_DRIVERNAME_LEN ) && defined( HARBOUR_MAX_RDD_DRIVERNAME_LENGTH )
    #define  HB_RDD_MAX_DRIVERNAME_LEN HARBOUR_MAX_RDD_DRIVERNAME_LENGTH

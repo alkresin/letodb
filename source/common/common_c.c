@@ -77,22 +77,6 @@
    #define ftime _ftime
 #endif
 
-void leto_writelog( const char* s, int n )
-{
-   LETO_FHANDLE handle;
-
-   if( hb_fsFile( "ac.log" ) )
-      handle = hb_fsOpen( "ac.log", FO_WRITE );
-   else
-      handle = hb_fsCreate( "ac.log", 0 );
-
-   hb_fsSeek( handle,0, SEEK_END );
-   hb_fsWrite( handle, s, (n) ? n : (int) strlen(s) );
-   hb_fsWrite( handle, "\r\n", 2 );
-
-   hb_fsClose( handle );
-}
-
 static HB_ULONG hb_dateMilliSec( void )
 {
 #if defined(HB_OS_WIN_32) || defined( HB_OS_WIN )

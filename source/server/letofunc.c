@@ -192,6 +192,30 @@ void leto_CloseTable( USHORT nTableStru );
 static int leto_IsRecLocked( PAREASTRU pAStru, ULONG ulRecNo );
 static void leto_SetScope(DBFAREAP pArea, LETOTAG *pTag, BOOL bTop, BOOL bSet);
 
+void leto_writelog( const char * sFile, const char * sTraceMsg, ... )
+{
+   FILE *hFile;
+
+   if( sFile == NULL )
+   {
+      hFile = hb_fopen( "letodb.log", "a" );
+   }
+   else
+   {
+      hFile = hb_fopen( sFile, "a" );
+   }
+
+   if( hFile )
+   {
+      va_list ap;
+
+      va_start( ap, sTraceMsg );
+      vfprintf( hFile, sTraceMsg, ap );
+      va_end( ap );
+
+      fclose( hFile );
+   }
+}
 
 HB_FUNC( GET_CURR_USER )
 {

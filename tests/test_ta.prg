@@ -12,13 +12,13 @@ Field NORD, DORD, NPROD, SUMMA
    RDDSETDEFAULT( "LETO" )
 
    ? "Start"
-   dbCreate( cPath+"Nakl1", { {"NORD","N",10,0},{"DORD","D",8,0},{"SUMMA","N",12,2},{"NORM","M",10,0} } )
-   dbCreate( cPath+"Nakl2", { {"NORD","N",10,0},{"DORD","D",8,0},{"NPROD","N",3,0},{"SUMMA","N",12,2},{"NORM","M",10,0} } )
+   dbCreate( cPath+"nakl1", { {"NORD","N",10,0},{"DORD","D",8,0},{"SUMMA","N",12,2},{"NORM","M",10,0} } )
+   dbCreate( cPath+"nakl2", { {"NORD","N",10,0},{"DORD","D",8,0},{"NPROD","N",3,0},{"SUMMA","N",12,2},{"NORM","M",10,0} } )
    ? "Files has been created"
 
-   use ( cPath+"Nakl1" ) New
+   use ( cPath+"nakl1" ) New
    index on Dtos(DORD)+Str(NORD,10) TAG DATA
-   use ( cPath+"Nakl2" ) New
+   use ( cPath+"nakl2" ) New
    index on Dtos(DORD)+Str(NORD,10)+Str(NPROD,3) TAG DATA
    ? "Files has been opened and indexed"
 
