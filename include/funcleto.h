@@ -1,4 +1,4 @@
-/*  $Id: funcleto.h,v 1.27 2010/07/17 16:57:52 ptsarenko Exp $  */
+/*  $Id: funcleto.h,v 1.28.2.19 2013/12/06 09:42:17 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -239,7 +239,7 @@ extern int leto_n2cb( char *s, unsigned long int n, int iLenLen );
 extern long int leto_b2n( const char *s, int iLenLen );
 extern char * leto_AddLen( char * pData, ULONG * uiLen, BOOL lBefore );
 extern int leto_BagCheck( const char * szTable, const char * szBagName );
-extern void leto_writelog( const char * sFile, const char * sTraceMsg, ... );
+extern void leto_writelog( const char * sFile, int n, const char * s, ... );
 extern void leto_encrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
 extern void leto_decrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key );
 extern void leto_byte2hexchar( const char * ptri, int iLen, char * ptro );

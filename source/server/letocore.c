@@ -163,7 +163,7 @@ void leto_metka( int iMode, char * s1, char * s2 )
          USHORT i;
          leto_ThreadMutexDestroy( &mutex_carr );
          for( i=0; i<uiarr1len; i++ )
-            leto_writelog( NULL, carr1[i] );
+            leto_writelog( NULL, 0, carr1[i] );
          break;
       }
    }
@@ -291,7 +291,6 @@ void leto_SendAnswer( PUSERSTRU pUStru, const char* szData, ULONG ulLen )
    }
    else
       hb_ipSend( pUStru->hSocket, szData, ulLen, -1 );
-   // leto_writelog(pUStru->pBuffer, 0);
    ulBytesSent += ulLen;
 
 }
@@ -305,8 +304,6 @@ LETO_THREAD_FUNC thread2( void * Cargo )
    double dSec;
 
    HB_SYMBOL_UNUSED( Cargo );
-   // char s[10];
-   // leto_writelog( "thread2 - Ok", 0 );
 
    while( bThread2 )
    {
@@ -343,7 +340,7 @@ LETO_THREAD_FUNC thread2( void * Cargo )
          // leto_metka( 1, "T2 ", s );
       }
       else
-         leto_writelog( NULL, "thread2-2 %d",iRes );
+         leto_writelog( NULL, 0, "thread2-2 %d",iRes );
    }
    return 0;
 }
@@ -464,7 +461,10 @@ HB_FUNC( LETO_SERVER )
    // leto_metka( 0, NULL, NULL );
    iServerPort = hb_parni(1);
    if( ( hSocketMain = hb_ipServer( iServerPort, NULL, 10 ) ) == ( HB_SOCKET_T ) -1 )
+   {
+      hb_retl( FALSE );
       return;
+   }
    hb_ip_rfd_set( hSocketMain );
 
    leto_ThreadCondInit( &cond_thread2 );
@@ -547,4 +547,5 @@ HB_FUNC( LETO_SERVER )
    // leto_ThreadMutexDestroy( &mutex_thread2_1 );
    leto_ThreadCondDestroy( &cond_thread2 );
    // leto_metka( 2, NULL, NULL );
+   hb_retl( TRUE );
 }

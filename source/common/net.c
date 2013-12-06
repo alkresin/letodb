@@ -1,4 +1,4 @@
-/*  $Id: net.c,v 1.4 2010/01/20 13:02:01 alkresin Exp $  */
+/*  $Id: net.c,v 1.4.2.2 2012/03/01 16:04:58 ptsarenko Exp $  */
 
 /*
  * Harbour Project source code:
@@ -66,7 +66,7 @@
 #define HB_OS_WIN_USED
 
 #include "hbapi.h"
-#include "clipdefs.h"
+#include "funcleto.h"
 
 #if defined(HB_OS_OS2) && defined(__GNUC__)
 
@@ -101,10 +101,10 @@
    #include <unistd.h>
    #define MAXGETHOSTNAME 256      /* should be enough for a host name */
 
-#endif
+#elif defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
 
-#if !defined(MAX_COMPUTERNAME_LENGTH)
-   #define MAX_COMPUTERNAME_LENGTH  31
+   #include <windows.h>
+
 #endif
 
 char * leto_NetName( void )

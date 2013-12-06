@@ -192,28 +192,35 @@ void leto_CloseTable( USHORT nTableStru );
 static int leto_IsRecLocked( PAREASTRU pAStru, ULONG ulRecNo );
 static void leto_SetScope(DBFAREAP pArea, LETOTAG *pTag, BOOL bTop, BOOL bSet);
 
-void leto_writelog( const char * sFile, const char * sTraceMsg, ... )
+void leto_writelog( const char * sFile, int n, const char * s, ... )
 {
-   FILE *hFile;
+   char * sFileDef = "letodb.log";
 
-   if( sFile == NULL )
+   if( n )
    {
-      hFile = hb_fopen( "letodb.log", "a" );
+      HB_FHANDLE handle;
+      if( hb_fsFile( (sFile)? sFile : sFileDef ) )
+         handle = hb_fsOpen( (sFile)? sFile : sFileDef, FO_WRITE );
+      else
+         handle = hb_fsCreate( (sFile)? sFile : sFileDef, 0 );
+
+      hb_fsSeek( handle,0, SEEK_END );
+      hb_fsWrite( handle, s, (n) ? n : (int) strlen(s) );
+      hb_fsWrite( handle, "\n\r", 2 );
+      hb_fsClose( handle );
    }
    else
    {
-      hFile = hb_fopen( sFile, "a" );
-   }
+      FILE * hFile = hb_fopen( (sFile)? sFile : sFileDef, "a" );
 
-   if( hFile )
-   {
       va_list ap;
-
-      va_start( ap, sTraceMsg );
-      vfprintf( hFile, sTraceMsg, ap );
-      va_end( ap );
-
-      fclose( hFile );
+      if( hFile )
+      {
+         va_start( ap, s );
+         vfprintf( hFile, s, ap );
+         va_end( ap );
+         fclose( hFile );
+      }
    }
 }
 
@@ -4108,7 +4115,6 @@ void leto_Intro( PUSERSTRU pUStru, char* szData )
       pp1 ++;
 
       /* pp3 - UserName, ptr - password */
-      // leto_writelog( szData,0 );
       if( bPass4L || bPass4M || bPass4D )
       {
          BOOL bPassOk = 0;
@@ -4121,7 +4127,6 @@ void leto_Intro( PUSERSTRU pUStru, char* szData )
             memcpy( szUser, pp3, ulLen );
             ppw = szUser + ulLen;
             *ppw = '\0';
-            // leto_writelog( szUser,0 );
 
             if( (pp1 - ptr) > 4 && (pp1 - ptr) < 50 )
             {
@@ -4139,21 +4144,16 @@ void leto_Intro( PUSERSTRU pUStru, char* szData )
                ulLen = (pp1-ptr-1) / 2;
                leto_decrypt( szBuf, ulLen, szPass, &ulLen, szKey );
                szPass[ulLen] = '\0';
-               // leto_writelog( szPass,0 );
             }
             else
                ulLen = 0;
 
             pp3 = leto_acc_find( szUser, szPass );
-            // leto_writelog( szUser,0 );
-            // leto_writelog( szPass,0 );
-            // leto_writelog( (pp3)? "Yes":"No",0 );
             if( pp3 )
                bPassOk = 1;
          }
          if( bPassOk )
          {
-            // leto_writelog("pass - Ok",0);
             pUStru->szAccess[0] = *pp3;
             pUStru->szAccess[1] = *(pp3+1);
          }
@@ -4448,9 +4448,6 @@ void leto_Transaction( PUSERSTRU pUStru, const char* szData, ULONG ulTaLen )
             ulLen = leto_b2n( ptr+1, uiLenLen );
             ptr += uiLenLen + 1;
 
-            // sprintf( s,"Transact-1A %c%c%c%c%c",*ptr,*(ptr+1),*(ptr+2),*(ptr+3),*(ptr+4) );
-            // leto_writelog( s,0 );
-
             if( !strncmp( ptr, "upd;", 4 ) )
                iRes = UpdateRec( pUStru, ptr+4, FALSE, NULL, &pTA[i] );
             else if( !strncmp( ptr, "add;", 4 ) )
@@ -4472,16 +4469,11 @@ void leto_Transaction( PUSERSTRU pUStru, const char* szData, ULONG ulTaLen )
 
       if( !iRes )
       {
-         // sprintf( s,"Transact-2 %d",iRecNumber );
-         // leto_writelog( s,0 );
-
          hb_xvmSeqBegin();
          for( i=0; i < iRecNumber && !bHrbError; i++ )
          {
             pArea = pTA[i].pArea;
 
-            // sprintf( s,"Transact-3 %d %d %d %d",i,pTA[i].bAppend,pTA[i].uiFlag,pTA[i].uiItems );
-            // leto_writelog( s,0 );
             if( pTA[i].bAppend )
             {
                PHB_ITEM pItem = hb_itemPutNL( NULL, 0 );
@@ -5043,7 +5035,6 @@ void ParseCommand( PUSERSTRU pUStru )
    uiAnswerSent = 0;
    ptr = ( const char * ) pUStru->pBufRead;
    ulLen = pUStru->ulDataLen;
-   // leto_writelog(ptr, 0);
    switch( *ptr )
    {
       case 's':

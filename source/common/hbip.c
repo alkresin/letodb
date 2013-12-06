@@ -930,6 +930,7 @@ int hb_ip_rfd_select( int iTimeOut )
    return iTimeOut;
 }
 
+/*
 HB_FUNC( HB_IP_RFD_SET )
 {
    HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
@@ -959,3 +960,4 @@ HB_FUNC( HB_IP_RFD_ISSET )
    HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
    hb_retl( FD_ISSET( hSocket,&active_fds ) );
 }
+*/

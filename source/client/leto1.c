@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.149 2010/08/20 15:33:42 ptsarenko Exp $  */
+/*  $Id: leto1.c,v 1.166.2.77 2013/12/06 09:42:17 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -107,28 +107,35 @@ char * leto_NetName( void );
 
 extern LETOCONNECTION * letoParseParam( const char * szParam, char * szFile );
 
-void leto_writelog( const char * sFile, const char * sTraceMsg, ... )
+void leto_writelog( const char * sFile, int n, const char * s, ... )
 {
-   FILE *hFile;
+   char * sFileDef = "letodb.log";
 
-   if( sFile == NULL )
+   if( n )
    {
-      hFile = hb_fopen( "letodb_client.log", "a" );
+      HB_FHANDLE handle;
+      if( hb_fsFile( (sFile)? sFile : sFileDef ) )
+         handle = hb_fsOpen( (sFile)? sFile : sFileDef, FO_WRITE );
+      else
+         handle = hb_fsCreate( (sFile)? sFile : sFileDef, 0 );
+
+      hb_fsSeek( handle,0, SEEK_END );
+      hb_fsWrite( handle, s, (n) ? n : (int) strlen(s) );
+      hb_fsWrite( handle, "\n\r", 2 );
+      hb_fsClose( handle );
    }
    else
    {
-      hFile = hb_fopen( sFile, "a" );
-   }
+      FILE * hFile = hb_fopen( (sFile)? sFile : sFileDef, "a" );
 
-   if( hFile )
-   {
       va_list ap;
-
-      va_start( ap, sTraceMsg );
-      vfprintf( hFile, sTraceMsg, ap );
-      va_end( ap );
-
-      fclose( hFile );
+      if( hFile )
+      {
+         va_start( ap, s );
+         vfprintf( hFile, s, ap );
+         va_end( ap );
+         fclose( hFile );
+      }
    }
 }
 
@@ -342,7 +349,7 @@ static long int leto_Recv( LETOCONNECTION * pConnection )
          iRet = hb_ipRecv( hSocket, ptr, lMsgLen );
          if( iRet <= 0 )
          {
-            leto_writelog( NULL,"!ERROR! leto_Recv! broken message" );
+            leto_writelog( NULL,0,"!ERROR! leto_Recv! broken message" );
             break;
          }
          else
@@ -387,7 +394,6 @@ long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, UL
 static int leto_SendRecv( LETOAREAP pArea, char * sData, ULONG ulLen, int iErr )
 {
    long int lRet;
-   // leto_writelog(sData,(ulLen)? ulLen:0);
    lRet = leto_DataSendRecv( letoConnPool + pArea->uiConnection, sData, ulLen );
    if( !lRet )
       commonError( pArea, EG_DATATYPE, 1000, 0, NULL, 0, NULL );
@@ -564,7 +570,6 @@ LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char 
          char szFile[_POSIX_PATH_MAX + 1];
          USHORT uiSizeLen = (pConnection->uiProto==1)? 0 : LETO_MSGSIZE_LEN;
 
-         // leto_writelog( s_szBuffer,0 );
          ptr = strchr( s_szBuffer,';' );
          if( ptr )
          {
@@ -634,7 +639,6 @@ LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char 
                   hb_setGetDateFormat(), (hb_setGetCentury())? 'T' : 'F' );
          if( pName )
             hb_xfree( pName );
-         // leto_writelog( szData,0 );
          if( leto_CheckServerVer( pConnection, 100 ) )
          {
             ulLen = strlen(szData+LETO_MSGSIZE_LEN);
@@ -2071,8 +2075,6 @@ static ERRCODE letoSeek( LETOAREAP pArea, BOOL bSoftSeek, PHB_ITEM pKey, BOOL bF
 
             if( ( uiKeyLen == uiKeyLenBuf ) && !memcmp( szKey, ptr, uiKeyLen) )
             {
-               // leto_writelog( "seekbuffer shoot", 0 );
-               // leto_writelog( ptr, uiKeyLenBuf );
                ptr += uiKeyLenBuf;
                if( HB_GET_LE_UINT24( ptr ) != 0 )
                   leto_ParseRec( pArea, ptr, TRUE );
@@ -2185,13 +2187,10 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
 
    HB_TRACE(HB_TR_DEBUG, ("letoSkip(%p, %ld)", pArea, lToSkip));
 
-   //sprintf( sData,"Skip-1 %lu %ld",pArea->ulRecNo,lToSkip );
-   //leto_writelog( sData,0 );
    if( pArea->uiUpdated )
    {
       leto_PutRec( pArea, FALSE );
       ptrBuf = pArea->ptrBuf;
-      // leto_writelog("Skip-1A",0);
    }
 
    if( !lToSkip )
@@ -2206,10 +2205,8 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
    {
       if( pArea->BufDirection == (lToSkip > 0 ? 1 : -1) )
       {
-         // leto_writelog("letoSkip-2",0);
          while( lu < ( lToSkip > 0 ? lToSkip : -lToSkip ) )
          {
-            // leto_writelog("letoSkip-2A",0);
             ulRecLen = HB_GET_LE_UINT24( pArea->ptrBuf );
             if( ulRecLen >= 100000 )
             {
@@ -2220,8 +2217,6 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
                break;
             pArea->ptrBuf += ulRecLen + 3;
             lu ++;
-            // sprintf( sData,"check2: %lu", (ULONG)pArea->ptrBuf );
-            // leto_writelog(sData,0);
             if( leto_OutBuffer( &pArea->Buffer, (char *) pArea->ptrBuf ) )
             {
                lu = 0;
@@ -2234,11 +2229,8 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
       {
          pArea->uiRecInBuf -= ( lToSkip > 0 ? lToSkip : -lToSkip );
          pArea->ptrBuf = pArea->Buffer.pBuffer;
-         // sprintf( sData,"letoSkip-3 %d %d", ( lToSkip > 0 ? lToSkip : -lToSkip ), pArea->uiRecInBuf );
-         // leto_writelog(sData,0);
          while( lu < (LONG)pArea->uiRecInBuf )
          {
-            // leto_writelog("letoSkip-3A",0);
             ulRecLen = HB_GET_LE_UINT24( pArea->ptrBuf );
             if( ulRecLen >= 100000 )
             {
@@ -2249,8 +2241,6 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
                break;
             pArea->ptrBuf += ulRecLen + 3;
             lu ++;
-            // sprintf( sData,"check3: %lu", (ULONG)pArea->ptrBuf );
-            // leto_writelog(sData,0);
 
             if( leto_OutBuffer( &pArea->Buffer, (char *) pArea->ptrBuf ) )
             {
@@ -2260,23 +2250,16 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
          }
          if( lu == (LONG)pArea->uiRecInBuf )
             lu = ( lToSkip > 0 ? lToSkip : -lToSkip );
-         // sprintf( sData,"letoSkip-3C %d", lu );
-         // leto_writelog(sData,0);
 
       }
       if( lu == ( lToSkip > 0 ? lToSkip : -lToSkip ) )
       {
-         // sprintf( sData,"letoSkip-4 %d", pArea->uiRecInBuf );
-         // leto_writelog(sData,0);
          ulRecLen = HB_GET_LE_UINT24( pArea->ptrBuf );
          if( ulRecLen )
          {
-            // leto_writelog("letoSkip-4A",0);
             if( ptrBuf )
             {
                HB_PUT_LE_UINT24( ptrBuf, 0 );
-               // sprintf( sData,"nul: %lu", (ULONG)ptrBuf );
-               // leto_writelog(sData,0);
             }
             leto_ParseRec( pArea, (char*) pArea->ptrBuf, FALSE );
             pArea->Buffer.uiShoots ++;
@@ -2300,7 +2283,6 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
       }
    }
 
-   //leto_writelog("letoSkip-5",0);
    if( leto_CheckServerVer( pConnection, 100 ) )
    {
       sprintf( sData,"skip;%lu;%ld;%lu;%s;%c;", pArea->hTable, lToSkip,
@@ -2321,8 +2303,6 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
          (char)( (hb_setGetDeleted())? 0x41 : 0x40 ) );
 
    if ( !leto_SendRecv( pArea, sData, 0, 1021 ) ) return FAILURE;
-   // sprintf( sData,"skip %lu", pArea->ulRecNo );
-   // leto_writelog( sData,0 );
 
    if( ( iLenLen = (((int)*s_szBuffer) & 0xFF) ) >= 10 )
    {
@@ -2428,7 +2408,6 @@ static ERRCODE letoDeleteRec( LETOAREAP pArea )
       pArea->fDeleted = 1;
       pArea->uiUpdated |= 4;
    }
-   // leto_writelog("Delete",0);
    return SUCCESS;
 }
 
@@ -6448,7 +6427,6 @@ HB_FUNC( LETO_COMMITTRANSACTION )
 
       if ( !leto_SendRecv( pArea, pData, ulLen, 1021 ) )
       {
-         //leto_writelog( pData, ulLen );
          hb_retl( 0 );
          return;
       }
