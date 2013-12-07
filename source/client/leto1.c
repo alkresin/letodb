@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.166.2.77 2013/12/06 09:42:17 alkresin Exp $  */
+/*  $Id: leto1.c,v 1.166.2.78 2013/12/06 15:38:35 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -638,7 +638,7 @@ LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char 
          sprintf( ptr, "%s;%s;%c\r\n", leto_GetServerCdp( pConnection, hb_cdp_page->id ),
                   hb_setGetDateFormat(), (hb_setGetCentury())? 'T' : 'F' );
          if( pName )
-            hb_xfree( pName );
+            free( pName );
          if( leto_CheckServerVer( pConnection, 100 ) )
          {
             ulLen = strlen(szData+LETO_MSGSIZE_LEN);
@@ -2616,21 +2616,9 @@ static ERRCODE letoGetValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
             HB_GET_LE_UINT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] ),
             HB_GET_LE_UINT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] + 4 ) );
 #else
-   #if ( defined( HARBOUR_VER_AFTER_101 ) )
          hb_itemPutTDT( pItem,
             HB_GET_LE_UINT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] ),
             HB_GET_LE_UINT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] + 4 ) );
-/*
-         hb_itemPutC( pItem, hb_timeStampStr( szBuffer,
-            HB_GET_LE_INT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] ),
-            HB_GET_LE_INT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] + 4 ) ) );
-*/
-   #else
-         char szBuffer[24];
-         hb_itemPutC( pItem, hb_dateTimeStampStr( szBuffer,
-            HB_GET_LE_INT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] ),
-            HB_GET_LE_INT32( pArea->pRecord + pArea->pFieldOffset[ uiIndex ] + 4 ) ) );
-   #endif
 #endif
          break;
       }
@@ -3077,11 +3065,7 @@ static ERRCODE letoPutValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
          else if( HB_IS_STRING( pItem ) )
          {
             LONG lJulian, lMillisec;
-    #if ( defined( HARBOUR_VER_AFTER_101 ) )
             hb_timeStampStrGetDT( hb_itemGetCPtr( pItem ), &lJulian, &lMillisec );
-    #else
-            hb_dateTimeStampStrGet( hb_itemGetCPtr( pItem ), &lJulian, &lMillisec );
-    #endif
             HB_PUT_LE_UINT32( ptr, lJulian );
             HB_PUT_LE_UINT32( ptr + 4, lMillisec );
          }

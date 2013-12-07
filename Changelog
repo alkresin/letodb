@@ -6,6 +6,9 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2013-12-07 09:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Some cleanup before dividing client part to C and Harbour.
+
 2013-12-05 15:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
   * Client side is fully synhronized with SVN version.
     Now client apps can work with both old (0.95) and new (2.12) servers.

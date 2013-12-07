@@ -331,11 +331,7 @@ LETO_THREAD_FUNC thread2( void * Cargo )
          if( ( dSec = hb_dateSeconds() ) - dSec4GC > 300 )
          {
             dSec4GC = dSec;
-            #if ( defined( __XHARBOUR__ ) ) || ( defined( HARBOUR_VER_AFTER_101 ) )
             hb_gcCollectAll( FALSE );
-            #else
-            hb_gcCollectAll();
-            #endif
          }
          // leto_metka( 1, "T2 ", s );
       }

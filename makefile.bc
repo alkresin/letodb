@@ -91,7 +91,6 @@ CLIENT_LIB_OBJS = \
    $(OBJ_DIR)\leto1.obj \
    $(OBJ_DIR)\letomgmn.obj \
    $(OBJ_DIR)\hbip.obj \
-   $(OBJ_DIR)\net.obj \
    $(OBJ_DIR)\common_c.obj \
    $(OBJ_DIR)\blowfish.obj \
    $(OBJ_DIR)\rddsys.obj

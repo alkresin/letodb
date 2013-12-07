@@ -420,7 +420,7 @@ static void Blowfish_Init( BLOWFISH_CTX *ctx, const char *key, int keyLen )
 
 }
 
-#include "hbapi.h"
+#include <string.h>
 
 void leto_encrypt( const char *ptri, unsigned long int ulLen, char *ptro, unsigned long int *pLen, const char *key )
 {

@@ -2503,15 +2503,9 @@ static int UpdateRec( PUSERSTRU pUStru, const char* szData, BOOL bAppend, ULONG 
                         HB_GET_LE_UINT32( ptr ),
                         HB_GET_LE_UINT32( ptr + 4 ) );
 #else
-   #if ( defined( HARBOUR_VER_AFTER_101 ) )
                      hb_itemPutC( pItem, hb_timeStampStr( szBuffer,
                         HB_GET_LE_INT32( ptr ),
                         HB_GET_LE_INT32( ptr + 4 ) ) );
-   #else
-                     hb_itemPutC( pItem, hb_dateTimeStampStr( szBuffer,
-                        HB_GET_LE_INT32( ptr ),
-                        HB_GET_LE_INT32( ptr + 4 ) ) );
-   #endif
 #endif
                      ptr += pField->uiLen;
                      break;
@@ -2762,14 +2756,10 @@ static void hb_setSetDeleted( BOOL bDeleted )
    HB_SET_STRUCT *hb_set = hb_GetSetStructPtr();
    hb_set->HB_SET_DELETED = bDeleted;
 #else
-  #if defined( HARBOUR_VER_AFTER_101 )
    PHB_ITEM pItem = hb_itemNew( NULL );
    hb_itemPutL( pItem, bDeleted );
    hb_setSetItem( HB_SET_DELETED, pItem );
    hb_itemRelease( pItem );
-  #else
-   hb_set.HB_SET_DELETED = bDeleted;
-  #endif
 #endif
 }
 
@@ -2779,14 +2769,10 @@ static void hb_setSetDateFormat( char* szDateFormat )
    HB_SET_STRUCT *hb_set = hb_GetSetStructPtr();
    strcpy( hb_set->HB_SET_DATEFORMAT, szDateFormat );
 #else
-  #if defined( HARBOUR_VER_AFTER_101 )
    PHB_ITEM pItem = hb_itemNew( NULL );
    hb_itemPutC( pItem, szDateFormat );
    hb_setSetItem( HB_SET_DATEFORMAT, pItem );
    hb_itemRelease( pItem );
-  #else
-   strcpy( hb_set.HB_SET_DATEFORMAT, szDateFormat );
-  #endif
 #endif
 }
 
@@ -2823,14 +2809,11 @@ static void leto_SetUserEnv( PUSERSTRU pUStru )
 #if defined( __XHARBOUR__ ) && ( ! defined(HB_VER_CVSID) || ( HB_VER_CVSID < 6575 ) )
    HB_SET_STRUCT *hb_set = hb_GetSetStructPtr();
    hb_set->hb_set_century = pUStru->bCentury;
-#elif defined( __XHARBOUR__ ) || defined( HARBOUR_VER_AFTER_101 )
    hb_setSetCentury( pUStru->bCentury );
-#elif defined( HARBOUR_VER_BEFORE_100 )
-   hb_set.hb_set_century = pUStru->bCentury;
 #endif
    if( pUStru->cdpage )
    {
-#if !( defined( __XHARBOUR__ ) ) && ( defined( HARBOUR_VER_AFTER_101 ) )
+#if !( defined( __XHARBOUR__ ) )
       hb_vmSetCDP( pUStru->cdpage );
 #else
       hb_cdpSelect( pUStru->cdpage );
@@ -4971,10 +4954,9 @@ void leto_runFunc( PUSERSTRU pUStru, PHB_DYNS* ppSym, const char* szName, const 
 
 void leto_User( PUSERSTRU pUStru, const char* pData )
 {
-   char *ptr;
 
    if( ( *(pData+2) != ';' ) || ( *pData != '0' ) ||
-          ( ptr = strchr( pData+3, ';' ) ) == NULL )
+          strchr( pData+3, ';' ) == NULL )
    {
       leto_SendAnswer( pUStru, szErr2, 4 );
    }

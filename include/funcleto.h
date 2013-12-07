@@ -1,4 +1,4 @@
-/*  $Id: funcleto.h,v 1.28.2.19 2013/12/06 09:42:17 alkresin Exp $  */
+/*  $Id: funcleto.h,v 1.28.2.20 2013/12/06 15:38:35 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -50,15 +50,7 @@
 
 #if defined( __XHARBOUR__ )
    #include "hbverbld.h"
-   #if defined(HB_VER_CVSID) && ( HB_VER_CVSID >= 6575 )
-      #define HARBOUR_VER_AFTER_101
-   #endif
 #elif defined( __HARBOUR__ )
-   #if __HARBOUR__ - 0 >= 0x010100
-      #define HARBOUR_VER_AFTER_101
-   #elif __HARBOUR__ - 0 < 0x000100
-      #define HARBOUR_VER_BEFORE_100
-   #endif
    #if __HARBOUR__ - 0 <= 0x020000
       typedef HB_U32 HB_FATTR;
    #endif
@@ -76,6 +68,7 @@
 #endif
 
 #define HB_SENDRECV_BUFFER_SIZE         16384
+
 #if defined( HB_OS_WIN_32 ) || defined( HB_OS_WIN )
    #define HB_SOCKET_T SOCKET
    #ifndef HB_SOCKET_H_
@@ -128,12 +121,10 @@
 #endif
 
 #if !defined( __XHARBOUR__ )
-   #if !defined( HARBOUR_VER_BEFORE_100 ) 
-      #if (__HARBOUR__ >= 0x010100)
-         #define hb_cdp_page hb_vmCDP()
-         #if ( __HARBOUR__ - 0 > 0x020000 )
-            typedef HB_ERRCODE ERRCODE;
-         #endif
+   #if (__HARBOUR__ >= 0x010100)
+      #define hb_cdp_page hb_vmCDP()
+      #if ( __HARBOUR__ - 0 > 0x020000 )
+         typedef HB_ERRCODE ERRCODE;
       #endif
    #endif
 #else

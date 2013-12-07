@@ -7,10 +7,6 @@
  * Copyright 2008 Alexander S. Kresin <alex / at / belacy.belgorod.su>
  * www - http://www.harbour-project.org
  *
- * Copyright 2007 Przemyslaw Czerpak <druzus / at / priv.onet.pl>
- * www - http://www.harbour-project.org
- * hb_dateMilliSeconds() function
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2, or (at your option)
@@ -52,65 +48,52 @@
  *
  */
 
+/*
 #include "hbapi.h"
 #include "hbapiitm.h"
 #include "hbdate.h"
 #include "hbapierr.h"
 #include "hbapifs.h"
 #include "funcleto.h"
+*/
+#include "hbsetup.h"
 
-#include <time.h>
-
-#if ( defined( HB_OS_BSD ) || defined( HB_OS_LINUX ) ) && !defined( __WATCOMC__ )
-   #include <sys/time.h>
-#elif !( defined( HB_WINCE ) && defined( _MSC_VER ) )
-   #include <sys/timeb.h>
-#endif
-#if defined( OS_UNIX_COMPATIBLE )
-   #include <sys/times.h>
-   #include <unistd.h>
-#endif
 #if defined( HB_OS_WIN_32 ) || defined( HB_OS_WIN )
    #include <windows.h>
-#elif defined(_MSC_VER)
-   #define timeb _timeb
-   #define ftime _ftime
 #endif
 
-static HB_ULONG hb_dateMilliSec( void )
+char * leto_NetName( void )
 {
-#if defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
-   SYSTEMTIME st;
+#if defined(HB_OS_UNIX) || ( defined(HB_OS_OS2) && defined(__GNUC__) )
 
-   HB_TRACE(HB_TR_DEBUG, ("hb_dateMilliSeconds()"));
+   #define MAXGETHOSTNAME 256
 
-   GetLocalTime( &st );
+   char szValue[MAXGETHOSTNAME + 1], *szRet;
+   USHORT uiLen;
 
-   return ( HB_ULONG ) hb_dateEncode( st.wYear, st.wMonth, st.wDay ) * 86400000L +
-          ( ( st.wHour * 60 + st.wMinute ) * 60 + st.wSecond ) * 1000 +
-          st.wMilliseconds;
-#elif ( defined( HB_OS_LINUX ) || defined( HB_OS_BSD ) ) && !defined( __WATCOMC__ )
-   struct timeval tv;
+   szValue[ 0 ] = '\0';
+   gethostname( szValue, MAXGETHOSTNAME );
 
-   HB_TRACE(HB_TR_DEBUG, ("hb_dateMilliSeconds()"));
+#elif defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
 
-   gettimeofday( &tv, NULL );
+   DWORD uiLen = MAX_COMPUTERNAME_LENGTH+1;
+   char szValue[MAX_COMPUTERNAME_LENGTH+1], *szRet;
 
-   return ( HB_ULONG ) tv.tv_sec * 1000 + tv.tv_usec / 1000;
+   szValue[ 0 ] = '\0';
+   GetComputerName( szValue, &uiLen );
+
 #else
-   struct timeb tb;
 
-   HB_TRACE(HB_TR_DEBUG, ("hb_dateMilliSeconds()"));
+   return NULL;
 
-   ftime( &tb );
-
-   return ( HB_ULONG ) tb.time * 1000 + tb.millitm;
 #endif
-}
 
-HB_FUNC( LETO_MILLISEC )
-{
-   hb_retnl( hb_dateMilliSec() );
+   uiLen = strlen( szValue );
+   szRet = (char*) malloc( uiLen+1 );
+   memcpy( szRet, szValue, uiLen );
+   szRet[uiLen] = '\0';
+   return szRet;
+
 }
 
 long int leto_b2n( const char *s, int iLenLen )

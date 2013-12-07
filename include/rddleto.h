@@ -1,4 +1,4 @@
-/*  $Id: rddleto.h,v 1.40.2.18 2013/12/05 12:10:35 alkresin Exp $  */
+/*  $Id: rddleto.h,v 1.40.2.19 2013/12/06 15:38:35 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -51,56 +51,9 @@
 #include "hbapirdd.h"
 #include "funcleto.h"
 #include "rddleto.ch"
+#include "letocl.h"
 
 HB_EXTERN_BEGIN
-
-typedef struct _CDPSTRU
-{
-   char *      szClientCdp;
-   char *      szServerCdp;
-   struct _CDPSTRU * pNext;
-} CDPSTRU, *PCDPSTRU;
-
-typedef struct _LETOCONNECTION_
-{
-   HB_SOCKET_T hSocket;
-   char *      pAddr;
-   int         iPort;
-   int         iTimeOut;
-   char *      szPath;
-   char        szVersion[24];
-   unsigned int uiMajorVer;
-   unsigned int uiMinorVer;
-   char        szVerHarbour[80];
-   char        szAccess[8];
-   char        cDopcode[2];
-   BOOL        bCrypt;
-   BOOL        bCloseAll;
-   PCDPSTRU    pCdpTable;
-
-   BOOL        bTransActive;
-   BYTE *      szTransBuffer;
-   ULONG       ulTransBuffLen;
-   ULONG       ulTransDataLen;
-   ULONG       ulRecsInTrans;
-   ULONG       ulTransBlockLen;
-
-   BOOL        bRefreshCount;
-
-   char *      pBufCrypt;
-   ULONG       ulBufCryptLen;
-
-/* uiBufRefreshTime defines the time interval in 0.01 sec. After this 
-   time is up, the records buffer must be refreshed, 100 by default */
-   USHORT      uiBufRefreshTime;
-
-   USHORT      uiDriver;
-   USHORT      uiMemoType;
-
-   USHORT      uiProto;
-   USHORT      uiTBufOffset;
-
-} LETOCONNECTION;
 
 typedef struct _LETOBUFFER_
 {
@@ -214,14 +167,9 @@ typedef LETOAREA * LETOAREAP;
 
 HB_EXTERN_END
 
-#if defined( HARBOUR_VER_BEFORE_100 ) 
-typedef USHORT ( * DBENTRYP_RVVL )( struct _RDDNODE * pRDD, PHB_ITEM p1, PHB_ITEM p2, ULONG p3 );
-#endif
-
 #define LETO_MAX_KEY        256     /* Max len of key */
 #define LETO_MAX_EXP        256     /* Max len of KEY/FOR expression */
 #define LETO_MAX_TAGNAME     10     /* Max len of tag name */
-
 
 #if ! defined( HB_RDD_MAX_DRIVERNAME_LEN ) && defined( HARBOUR_MAX_RDD_DRIVERNAME_LENGTH )
    #define  HB_RDD_MAX_DRIVERNAME_LEN HARBOUR_MAX_RDD_DRIVERNAME_LENGTH
