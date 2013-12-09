@@ -120,19 +120,13 @@
 #define HB_FT_PICTURE         18    /* "P" */
 #endif
 
-#if !defined( __XHARBOUR__ )
-   #if (__HARBOUR__ >= 0x010100)
-      #define hb_cdp_page hb_vmCDP()
-      #if ( __HARBOUR__ - 0 > 0x020000 )
-         typedef HB_ERRCODE ERRCODE;
-      #endif
-   #endif
-#else
+#if defined( __XHARBOUR__ )
    #define hb_cdp_page hb_cdppage()
-   #if ! defined(HB_VER_CVSID) || ( HB_VER_CVSID >= 6380 )
-      typedef HB_ERRCODE ERRCODE;
-   #endif
+#elif defined( __HARBOUR__ )
+   #define hb_cdp_page hb_vmCDP()
 #endif
+#define  ERRCODE  HB_ERRCODE
+
 #if !defined( HB_PFS )
    #define HB_PFS "l"
 #endif

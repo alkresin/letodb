@@ -512,6 +512,40 @@ BOOL leto_CheckServerVer( LETOCONNECTION * pConnection, USHORT uiVer )
    return (USHORT) ( pConnection->uiMajorVer*100 + pConnection->uiMinorVer ) >= uiVer;
 }
 
+char * leto_NetName( void )
+{
+#if defined(HB_OS_UNIX) || ( defined(HB_OS_OS2) && defined(__GNUC__) )
+
+   #define MAXGETHOSTNAME 256
+
+   char szValue[MAXGETHOSTNAME + 1], *szRet;
+   USHORT uiLen;
+
+   szValue[ 0 ] = '\0';
+   gethostname( szValue, MAXGETHOSTNAME );
+
+#elif defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
+
+   DWORD uiLen = MAX_COMPUTERNAME_LENGTH+1;
+   char szValue[MAX_COMPUTERNAME_LENGTH+1], *szRet;
+
+   szValue[ 0 ] = '\0';
+   GetComputerName( szValue, &uiLen );
+
+#else
+
+   return NULL;
+
+#endif
+
+   uiLen = strlen( szValue );
+   szRet = (char*) malloc( uiLen+1 );
+   memcpy( szRet, szValue, uiLen );
+   szRet[uiLen] = '\0';
+   return szRet;
+
+}
+
 LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char * szUser, const char * szPass, int iTimeOut )
 {
    HB_SOCKET_T hSocket;

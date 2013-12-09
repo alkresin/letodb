@@ -48,53 +48,10 @@
  *
  */
 
-/*
-#include "hbapi.h"
-#include "hbapiitm.h"
-#include "hbdate.h"
-#include "hbapierr.h"
-#include "hbapifs.h"
-#include "funcleto.h"
-*/
-#include "hbsetup.h"
+#define HB_LEGACY_LEVEL4
+#define HB_LEGACY_TYPES_ON
 
-#if defined( HB_OS_WIN_32 ) || defined( HB_OS_WIN )
-   #include <windows.h>
-#endif
-
-char * leto_NetName( void )
-{
-#if defined(HB_OS_UNIX) || ( defined(HB_OS_OS2) && defined(__GNUC__) )
-
-   #define MAXGETHOSTNAME 256
-
-   char szValue[MAXGETHOSTNAME + 1], *szRet;
-   USHORT uiLen;
-
-   szValue[ 0 ] = '\0';
-   gethostname( szValue, MAXGETHOSTNAME );
-
-#elif defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
-
-   DWORD uiLen = MAX_COMPUTERNAME_LENGTH+1;
-   char szValue[MAX_COMPUTERNAME_LENGTH+1], *szRet;
-
-   szValue[ 0 ] = '\0';
-   GetComputerName( szValue, &uiLen );
-
-#else
-
-   return NULL;
-
-#endif
-
-   uiLen = strlen( szValue );
-   szRet = (char*) malloc( uiLen+1 );
-   memcpy( szRet, szValue, uiLen );
-   szRet[uiLen] = '\0';
-   return szRet;
-
-}
+#include "hbdefs.h"
 
 long int leto_b2n( const char *s, int iLenLen )
 {

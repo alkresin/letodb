@@ -56,6 +56,11 @@
  *
  */
 
+#define HB_LEGACY_LEVEL4
+#define HB_LEGACY_TYPES_ON
+
+#include "hbdefs.h"
+
 #include "hbapi.h"
 #include "hbapiitm.h"
 #include "hbapierr.h"
