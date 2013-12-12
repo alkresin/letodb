@@ -443,6 +443,16 @@ void leto_ScanUS( void )
    }
 }
 
+HB_FUNC( HB_IPINIT )
+{
+   hb_ipInit();
+}
+
+HB_FUNC( HB_IPCLEANUP )
+{
+   hb_ipCleanup();
+}
+
 HB_FUNC( LETO_SERVER )
 {
    char szBuffer[32];

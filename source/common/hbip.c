@@ -61,10 +61,6 @@
 
 #include "hbdefs.h"
 
-#include "hbapi.h"
-#include "hbapiitm.h"
-#include "hbapierr.h"
-
 /* Compile in Unix mode under Cygwin */
 #ifdef OS_UNIX_COMPATIBLE
   #undef HB_OS_WIN_32
@@ -723,142 +719,6 @@ static BOOL hb_itemGetWriteCL( PHB_ITEM pBufItm, char ** pBuffer, ULONG * pulLen
 }
 #endif
 
-HB_FUNC( HB_IPRECV )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-   PHB_ITEM pBuffer = hb_param( 2, HB_IT_STRING );
-   char * pszBuffer;
-   ULONG ulLen;
-
-   if( !hSocket || pBuffer == NULL || !HB_ISBYREF( 2 ) || 
-       !hb_itemGetWriteCL( pBuffer, &pszBuffer, &ulLen ) )
-   {
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-      return;
-   }
-
-   hb_retni( hb_ipRecv( hSocket, pszBuffer, ulLen ) );
-}
-
-HB_FUNC( HB_IPSEND )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-   PHB_ITEM pBuffer = hb_param( 2, HB_IT_STRING );
-   int timeout = ( HB_ISNIL(3) )? -1 : hb_parni(3);
-
-   if( !hSocket || !pBuffer )
-   {
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-      return;
-   }
-
-   hb_retni( hb_ipSend( hSocket, hb_itemGetCPtr(pBuffer), hb_itemGetCLen(pBuffer), timeout ) );
-}
-
-HB_FUNC( HB_IPSERVER )
-{
-   HB_SOCKET_T hSocket;
-   const char * szAddress;
-   int iPort;
-   int iListen;
-
-   /* Parameter error checking */
-   if( ! HB_ISNUM( 1 ) )
-   {
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-      return;
-   }
-
-   iPort = hb_parni( 1 );
-   szAddress = (HB_ISNIL(2))? NULL :  hb_parc( 2 );
-   iListen = HB_ISNUM( 3 ) ? hb_parni( 3 ) : 10;
-
-   hSocket = hb_ipServer( iPort, szAddress, iListen );
-   if( hSocket != ( HB_SOCKET_T ) -1 )
-      hb_retnl( hSocket );
-   else
-      hb_ret();
-}
-
-HB_FUNC( HB_IPACCEPT )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-   HB_SOCKET_T incoming;
-   int timeout = ( HB_ISNIL(2) )? -1 : hb_parni(2);
-   long int lPort;
-   char szAddr[24];
-
-   if( !hSocket )
-   {
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-      return;
-   }
-
-   incoming = hb_ipAccept( hSocket, timeout, szAddr, &lPort );
-   if( incoming == ( HB_SOCKET_T ) -1 )
-      hb_ret();
-   else
-   {  
-      PHB_ITEM temp, aInfo = hb_itemArrayNew( 3 );
-
-      temp = hb_itemPutNL( NULL, incoming );
-      hb_itemArrayPut( aInfo, 1, temp );
-      hb_itemRelease( temp );
-
-      temp = hb_itemPutC( NULL, szAddr );
-      hb_itemArrayPut( aInfo, 2, temp );
-      hb_itemRelease( temp );
-
-      temp = hb_itemPutNL( NULL, lPort );
-      hb_itemArrayPut( aInfo, 3, temp );
-      hb_itemRelease( temp );
-
-      hb_itemReturn( aInfo );
-      hb_itemRelease( aInfo );
-   }
-}
-
-HB_FUNC( HB_IPCONNECT )
-{
-   HB_SOCKET_T hSocket;
-
-   if( !HB_ISCHAR( 1 ) || !HB_ISNUM( 2 ) )
-   {
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-      return;
-   }
-
-   hSocket = hb_ipConnect( hb_parc(1), htons( hb_parni(2) ), ( HB_ISNIL(3) )? -1:hb_parni(3) );
-
-   hb_retnl( hSocket );
-}
-
-HB_FUNC( HB_IPDATAREADY )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-
-   if( !hSocket || ( hb_pcount() == 2 && ! HB_ISNUM( 2 ) ) )
-   {
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-      return;
-   }
-
-   if( hb_ipDataReady( hSocket, ( HB_ISNIL(2) )? 0 : hb_parni(2) ) )
-      hb_retni( 1 );
-   else
-      hb_retni( 0 );
-}
-
-HB_FUNC( HB_IPERRORCODE )
-{
-   hb_retni( errorCode );
-}
-
-HB_FUNC( HB_IPERRORDESC )
-{
-   hb_retc( errorDesc );
-}
-
 void hb_getLocalIP( HB_SOCKET_T hSocket, char * szIP )
 {
    struct sockaddr_in localAddr;
@@ -871,26 +731,6 @@ void hb_getLocalIP( HB_SOCKET_T hSocket, char * szIP )
    }
    else
       strcpy( szIP, inet_ntoa(localAddr.sin_addr) );
-}
-
-HB_FUNC( HB_IPCLOSE )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-
-   if( !hSocket )
-      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-   else
-      hb_retni( hb_ipclose( hSocket ) );
-}
-
-HB_FUNC( HB_IPINIT )
-{
-   hb_ipInit();
-}
-
-HB_FUNC( HB_IPCLEANUP )
-{
-   hb_ipCleanup();
 }
 
 BOOL hb_ip_rfd_isset( HB_SOCKET_T hSocket )
@@ -934,35 +774,3 @@ int hb_ip_rfd_select( int iTimeOut )
 
    return iTimeOut;
 }
-
-/*
-HB_FUNC( HB_IP_RFD_SET )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-   hb_ip_rfd_set( hSocket );
-}
-
-HB_FUNC( HB_IP_RFD_ZERO )
-{
-   hb_ip_rfd_zero();
-}
-
-HB_FUNC( HB_IP_RFD_CLR )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-   hb_ip_rfd_clr( hSocket );
-}
-
-HB_FUNC( HB_IP_RFD_SELECT )
-{
-   int iTimeOut = (HB_ISNIL(1))? -1 : hb_parni(1);
-
-   hb_retni( hb_ip_rfd_select( iTimeOut ) );
-}
-
-HB_FUNC( HB_IP_RFD_ISSET )
-{
-   HB_SOCKET_T hSocket = (HB_SOCKET_T)hb_parnl(1);
-   hb_retl( FD_ISSET( hSocket,&active_fds ) );
-}
-*/
