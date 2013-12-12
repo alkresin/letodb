@@ -747,37 +747,29 @@ static ERRCODE leto_doClose( AREAP pArea, void * p )
 {
    if( leto_CheckAreaConn( pArea, ( LETOCONNECTION * ) p ) )
    {
+      ( ( LETOCONNECTION * ) p )->bCloseAll = 1;
       SELF_CLOSE( pArea );
    }
    return SUCCESS;
 }
 
-BOOL leto_CloseAll( LETOCONNECTION * pConnection )
+static BOOL leto_CloseAll( LETOCONNECTION * pConnection )
 {
    char szData[16];
 
-   pConnection->bCloseAll = 1;
-   /* hb_rddCloseAll(); */
    hb_rddIterateWorkAreas( leto_doClose, (void *) pConnection );
-   pConnection->bCloseAll = 0;
 
-   if( leto_CheckServerVer( pConnection, 100 ) )
-      sprintf( szData,"close_all;\r\n" );
-   else
-      sprintf( szData,"close;00;\r\n" );
-   if( leto_DataSendRecv( pConnection, szData, 0 ) )
-      return TRUE;
-   else
-      return FALSE;
-}
-
-static ERRCODE leto_CheckAreas( AREAP pArea, void * p )
-{
-   if( leto_CheckAreaConn( pArea, ( LETOCONNECTION * ) p ) )
+   if( pConnection->bCloseAll )
    {
-      ( ( LETOCONNECTION * ) p )->bCloseAll = 1;
+      if( leto_CheckServerVer( pConnection, 100 ) )
+         sprintf( szData,"close_all;\r\n" );
+      else
+         sprintf( szData,"close;00;\r\n" );
+      if( !leto_DataSendRecv( pConnection, szData, 0 ) )
+         return FALSE;
    }
-   return SUCCESS;
+   return TRUE;
+
 }
 
 void leto_ConnectionClose( LETOCONNECTION * pConnection )
@@ -785,10 +777,7 @@ void leto_ConnectionClose( LETOCONNECTION * pConnection )
 
    if( pConnection->pAddr )
    {
-      pConnection->bCloseAll = 0;
-      hb_rddIterateWorkAreas( leto_CheckAreas, (void *) pConnection );
-      if( pConnection->bCloseAll )
-         leto_CloseAll( pConnection );
+      leto_CloseAll( pConnection );
 
       hb_ipclose( pConnection->hSocket );
       pConnection->hSocket = 0;
