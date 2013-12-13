@@ -125,7 +125,7 @@
 #elif defined( __HARBOUR__ )
    #define hb_cdp_page hb_vmCDP()
 #endif
-#define  ERRCODE  HB_ERRCODE
+#define ERRCODE  HB_ERRCODE
 
 #if !defined( HB_PFS )
    #define HB_PFS "l"

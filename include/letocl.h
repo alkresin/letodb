@@ -48,6 +48,19 @@
  *
  */
 
+#include "hbdefs.h"
+
+#if !defined (HB_SOCKET_T)
+   #if defined( HB_OS_WIN_32 ) || defined( HB_OS_WIN )
+      #define HB_SOCKET_T SOCKET
+      #ifndef HB_SOCKET_H_
+         #include <winsock2.h>
+      #endif
+   #else
+      #define HB_SOCKET_T int
+   #endif
+#endif
+
 HB_EXTERN_BEGIN
 
 typedef struct _CDPSTRU
@@ -70,18 +83,18 @@ typedef struct _LETOCONNECTION_
    char        szVerHarbour[80];
    char        szAccess[8];
    char        cDopcode[2];
-   BOOL        bCrypt;
-   BOOL        bCloseAll;
+   HB_BOOL        bCrypt;
+   HB_BOOL        bCloseAll;
    PCDPSTRU    pCdpTable;
 
-   BOOL        bTransActive;
+   HB_BOOL        bTransActive;
    BYTE *      szTransBuffer;
    ULONG       ulTransBuffLen;
    ULONG       ulTransDataLen;
    ULONG       ulRecsInTrans;
    ULONG       ulTransBlockLen;
 
-   BOOL        bRefreshCount;
+   HB_BOOL        bRefreshCount;
 
    char *      pBufCrypt;
    ULONG       ulBufCryptLen;
@@ -99,3 +112,37 @@ typedef struct _LETOCONNECTION_
 } LETOCONNECTION;
 
 HB_EXTERN_END
+
+char * leto_getRcvBuff( void );
+char * leto_firstchar( void );
+void leto_setCallback( void( *fn )( void ) );
+void LetoInit( void );
+void LetoExit( USHORT uiFull );
+void LetoSetDateFormat( const char * szDateFormat );
+void LetoSetCentury( char cCentury );
+void LetoSetCdp( const char * szCdp );
+void LetoSetModName( char * szModule );
+SHORT LetoGetConnectRes( void );
+int LetoGetCmdItem( char ** pptr, char * szDest );
+LETOCONNECTION * LetoConnectionNew( const char * szAddr, int iPort, const char * szUser, const char * szPass, int iTimeOut );
+int LetoCloseAll( LETOCONNECTION * pConnection );
+void LetoConnectionClose( LETOCONNECTION * pConnection );
+char * LetoGetServerVer( LETOCONNECTION * pConnection );
+void LetoSetPath( LETOCONNECTION * pConnection, const char * szPath );
+
+long int leto_RecvFirst( LETOCONNECTION * pConnection );
+long int leto_Recv( LETOCONNECTION * pConnection );
+long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, ULONG ulLen );
+LETOCONNECTION * leto_getConnectionPool( void );
+LETOCONNECTION * leto_ConnectionFind( const char * szAddr, int iPort );
+const char * leto_GetServerCdp( LETOCONNECTION * pConnection, const char *szCdp );
+int LetoCheckServerVer( LETOCONNECTION * pConnection, USHORT uiVer );
+const char * leto_RemoveIpFromPath(const char * szPath);
+int leto_getIpFromPath( const char * sSource, char * szAddr, int * piPort, char * szPath, BOOL bFile );
+void leto_getFileFromPath( const char * sSource, char * szFile );
+
+char * LetoMgGetInfo( LETOCONNECTION * pConnection );
+char * LetoMgGetUsers( LETOCONNECTION * pConnection, const char * szTable );
+char * LetoMgGetTables( LETOCONNECTION * pConnection, const char * szUser );
+void LetoMgKillUser( LETOCONNECTION * pConnection, const char * szUserId );
+char * LetoMgGetTime( LETOCONNECTION * pConnection );

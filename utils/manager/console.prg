@@ -62,7 +62,7 @@ Local arr, nKey := 49, nRes
    ENDIF
 
    CRLF := Chr(13)+Chr(10)
-   hb_IPInit()
+   //hb_IPInit()
 
    cAddress := "//" + cAddress + "/"
    ? "Connecting to " + cAddress
@@ -300,5 +300,5 @@ Return .T.
 EXIT PROCEDURE EXIPROC
 
    leto_DisConnect()
-   hb_IPCleanup()
+   //hb_IPCleanup()
 RETURN

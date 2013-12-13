@@ -32,7 +32,8 @@ WINDOWS_LIBS = user32.lib winspool.lib WSock32.Lib
 
 all: \
    $(BIN_DIR)\letodb.exe \
-   $(LIB_DIR)\rddleto.lib
+   $(LIB_DIR)\rddleto.lib \
+   $(LIB_DIR)\leto.lib
 
 $(BIN_DIR)\letodb.exe :  \
    $(OBJ_DIR)\server.obj \
@@ -96,11 +97,16 @@ $(LIB_DIR)\rddleto.lib : \
    $(OBJ_DIR)\leto1.obj \
    $(OBJ_DIR)\letomgmn.obj \
    $(OBJ_DIR)\hbip.obj \
-   $(OBJ_DIR)\net.obj \
    $(OBJ_DIR)\common_c.obj \
    $(OBJ_DIR)\blowfish.obj
   lib /out:$@ $**
 
+$(LIB_DIR)\leto.lib : \
+   $(OBJ_DIR)\letocl.obj \
+   $(OBJ_DIR)\hbip.obj \
+   $(OBJ_DIR)\common_c.obj \
+   $(OBJ_DIR)\blowfish.obj
+  lib /out:$@ $**
 
 {$(SERVER_DIR)}.prg{$(OBJ_DIR)}.c:
   $(HRB_DIR)\bin\harbour.exe $** -n -w -i$(HRB_DIR)\include -i$(INC_DIR) -d__WIN_DAEMON__ -o$@

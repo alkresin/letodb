@@ -76,7 +76,8 @@ HB_CMD = $(HARBOUR_EXE) $(HARBOURFLAGS) $** -o$@
 # Macros to access our library names
 #
 
-CLIENT_LIB   =   $(LETO_LIB_DIR)\rddleto.lib
+CLIENT_RDD_LIB   =   $(LETO_LIB_DIR)\rddleto.lib
+CLIENT_LIB   =   $(LETO_LIB_DIR)\leto.lib
 SERVER_EXE   =   $(LETO_BIN_DIR)\letodb.exe
 
 #
@@ -87,13 +88,24 @@ SERVER_EXE   =   $(LETO_BIN_DIR)\letodb.exe
 # RDDLETO.LIB rules
 #
 
-CLIENT_LIB_OBJS = \
+CLIENT_RDD_LIB_OBJS = \
+   $(OBJ_DIR)\letocl.obj \
    $(OBJ_DIR)\leto1.obj \
    $(OBJ_DIR)\letomgmn.obj \
    $(OBJ_DIR)\hbip.obj \
    $(OBJ_DIR)\common_c.obj \
    $(OBJ_DIR)\blowfish.obj \
    $(OBJ_DIR)\rddsys.obj
+
+#
+# LETO.LIB rules
+#
+
+CLIENT_LIB_OBJS = \
+   $(OBJ_DIR)\letocl.obj \
+   $(OBJ_DIR)\hbip.obj \
+   $(OBJ_DIR)\common_c.obj \
+   $(OBJ_DIR)\blowfish.obj \
 
 #
 # LETO.EXE rules
@@ -118,6 +130,7 @@ SERVER_EXE_OBJS = \
 #
 
 PROJECT = \
+   $(CLIENT_RDD_LIB) \
    $(CLIENT_LIB) \
    $(SERVER_EXE)
 
@@ -126,6 +139,14 @@ ALL: $(PROJECT)
 #
 # Library dependencies and build rules
 #
+
+$(CLIENT_RDD_LIB) : $(CLIENT_RDD_LIB_OBJS)
+    IF EXIST "$(CLIENT_RDD_LIB)" $(DEL) "$(CLIENT_RDD_LIB)" > NUL
+    $(LINKER) "$(CLIENT_RDD_LIB)" $(ARFLAGS) @&&!
++$(**: = &^
++)
+
+!
 
 $(CLIENT_LIB) : $(CLIENT_LIB_OBJS)
     IF EXIST "$(CLIENT_LIB)" $(DEL) "$(CLIENT_LIB)" > NUL
@@ -146,10 +167,9 @@ $(HARBOUR_LIBS)
 $(WINDOWS_LIBS)
 !
 
-# ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-# ³ CLIENT.LIB Dependencies³Û
-# ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙÛ
-#  ßßßßßßßßßßßßßßßßßßßßßßßßßß
+#
+# CLIENT_RDD.LIB Dependencies
+#
 
 {$(CLIENT_DIR)}.prg{$(OBJ_DIR)}.c:
     $(HB_CMD)
@@ -163,6 +183,19 @@ $(WINDOWS_LIBS)
 {$(COMMON_DIR)}.c{$(OBJ_DIR)}.obj:
     $(CC_CMD)
 
+
+#
+# CLIENT.LIB Dependencies
+#
+
+.c.obj:
+    $(CC_CMD)
+
+{$(CLIENT_DIR)}.c{$(OBJ_DIR)}.obj:
+    $(CC_CMD)
+
+{$(COMMON_DIR)}.c{$(OBJ_DIR)}.obj:
+    $(CC_CMD)
 
 #
 # SERVER.EXE dependencies

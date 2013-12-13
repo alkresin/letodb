@@ -70,7 +70,7 @@ Public oApp
    Afill( aSent,0 )
    Afill( aRead,0 )
    oApp := HApp():New()
-   hb_IPInit()
+   //hb_IPInit()
 
    oApp:nItemCurr := 0
    IF cAddress != Nil
@@ -653,5 +653,5 @@ EXIT PROCEDURE EXIPROC
       oApp:oTimer:End()
    ENDIF
    SaveOptions()
-   hb_IPCleanup()
+   //hb_IPCleanup()
 RETURN

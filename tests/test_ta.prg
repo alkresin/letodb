@@ -5,7 +5,7 @@
  */
 
 Function Main
-Local cPath := "//199.10.11.9:2812/temp/"
+Local cPath := "//127.0.0.1:2812/temp/"
 Field NORD, DORD, NPROD, SUMMA
 
    REQUEST LETO

@@ -91,19 +91,13 @@ typedef struct
 static USHORT s_uiRddCount = 0;
 static USHORT s_uiRddIdLETO = ( USHORT ) -1;
 static RDDFUNCS letoSuper;
-static char * s_szBuffer = NULL;
-static ULONG s_lBufferLen = 0;
-
-USHORT uiConnCount = 0;
-static LETOCONNECTION * letoConnPool = NULL;
-LETOCONNECTION * pCurrentConn = NULL;
-static SHORT s_iConnectRes = 1;
 
 static BOOL s_bFastAppend = 0;
 static PHB_ITEM s_pEvalItem = NULL;
 
-char * leto_NetName( void );
-
+extern USHORT uiConnCount;
+extern LETOCONNECTION * letoConnPool;
+extern LETOCONNECTION * pCurrentConn;
 
 extern LETOCONNECTION * letoParseParam( const char * szParam, char * szFile );
 
@@ -139,14 +133,10 @@ void leto_writelog( const char * sFile, int n, const char * s, ... )
    }
 }
 
-char * leto_firstchar( void )
+void funcEvalItem( void )
 {
-   int iLenLen;
-
-   if( ( iLenLen = (((int)*s_szBuffer) & 0xFF) ) < 10 )
-      return (s_szBuffer+2+iLenLen);
-   else
-      return (s_szBuffer+1);
+   if( s_pEvalItem )
+      hb_vmEvalBlockOrMacro( s_pEvalItem );   
 }
 
 static BYTE leto_ItemType( PHB_ITEM pItem )
@@ -198,539 +188,29 @@ static ERRCODE commonError( LETOAREAP pArea, USHORT uiGenCode, USHORT uiSubCode,
    return errCode;
 }
 
-static long int leto_RecvFirst( LETOCONNECTION * pConnection )
-{
-   HB_SOCKET_T hSocket = pConnection->hSocket;
-   int iRet;
-   char szRet[LETO_MSGSIZE_LEN+1], * ptr;
-   ULONG ulMsgLen;
-
-   ptr = s_szBuffer;
-   while( hb_ipDataReady( hSocket,2 ) == 0 )
-   {
-   }
-
-   if( ( iRet = hb_ipRecv( hSocket, szRet, LETO_MSGSIZE_LEN ) ) < LETO_MSGSIZE_LEN )
-      return 0;
-
-   if( !strncmp( szRet, "Leto", 4 ) )
-   {
-      pConnection->uiProto = 1;
-      pConnection->uiTBufOffset = 10;
-
-      memcpy( s_szBuffer, szRet, 4 );
-      ptr += 4;
-      do
-      {
-         while( hb_ipDataReady( hSocket,2 ) == 0 )
-         {
-         }
-         if( (iRet = hb_ipRecv( hSocket, ptr, HB_SENDRECV_BUFFER_SIZE-(ptr-s_szBuffer) )) <= 0 )
-            break;
-         else
-         {
-            ptr += iRet;
-            if( *(ptr-1) == '\n' && *(ptr-2) == '\r' )
-               break;
-         }
-      }
-      while( ptr - s_szBuffer < HB_SENDRECV_BUFFER_SIZE );
-   }
-   else
-   {
-      pConnection->uiProto = 2;
-      pConnection->uiTBufOffset = 12;
-
-      ulMsgLen = HB_GET_LE_UINT32( szRet );
-      if( !ulMsgLen || (ulMsgLen + 1 > s_lBufferLen) )
-         return 0;
-      do
-      {
-         while( hb_ipDataReady( hSocket, 2 ) == 0 )
-         {
-         }
-         if( (iRet = hb_ipRecv( hSocket, ptr, ulMsgLen )) <= 0 )
-            break;
-         else
-         {
-            ptr += iRet;
-            ulMsgLen -= iRet;
-         }
-      }
-      while( ulMsgLen > 0 );
-   }
-
-   if( (((int)*s_szBuffer) & 0xFF) >= 10 && (ptr - s_szBuffer) > 2 && *(ptr-1) == '\n' && *(ptr-2) == '\r' )
-      *(ptr-2) = '\0';
-   else
-      *ptr = '\0';
-
-   return (long int) (ptr - s_szBuffer);
-}
-
-static long int leto_Recv( LETOCONNECTION * pConnection )
-{
-   HB_SOCKET_T hSocket = pConnection->hSocket;
-   char * ptr = s_szBuffer;
-   int iRet;
-
-   if( pConnection->uiProto == 1 )
-   {
-      int iLenLen = 0;
-      char szRet[HB_SENDRECV_BUFFER_SIZE];
-      long int lLen = 0;
-
-      do
-      {
-         while( hb_ipDataReady( hSocket,2 ) == 0 )
-         {
-         }
-         iRet = hb_ipRecv( hSocket, szRet, HB_SENDRECV_BUFFER_SIZE );
-         if( iRet <= 0 )
-            break;
-         else
-         {
-            if( ((ULONG)((ptr - s_szBuffer) + iRet)) > s_lBufferLen )
-            {
-               char * szTemp;
-               s_lBufferLen += HB_SENDRECV_BUFFER_SIZE;
-               szTemp = (char*) malloc( s_lBufferLen );
-               memcpy( szTemp, s_szBuffer, ptr-s_szBuffer );
-               ptr = szTemp + (ptr-s_szBuffer);
-               free( s_szBuffer );
-               s_szBuffer = szTemp;
-            }
-            memcpy( ptr, szRet, iRet );
-            ptr += iRet;
-            if( lLen == 0 && ( iLenLen = (((int)*s_szBuffer) & 0xFF) ) < 10 && (ptr-s_szBuffer) > iLenLen )
-               lLen = leto_b2n( s_szBuffer+1, iLenLen );
-            if( ( lLen > 0 && lLen+iLenLen+1 <= ptr-s_szBuffer ) ||
-                  ( iLenLen >= 10 && *(ptr-1) == '\n' && *(ptr-2) == '\r' ) )
-               break;
-         }
-      }
-      while(1);
-
-      if( iLenLen >= 10 )
-         *(ptr-2) = '\0';
-      else
-         *ptr = '\0';
-   }
-   else
-   {
-      int iStep = 0;
-      char szRet[LETO_MSGSIZE_LEN+1];
-      ULONG lMsgLen;
-
-      while( hb_ipDataReady( hSocket, 2 ) == 0 )
-      {
-         if( s_pEvalItem && ( ( iStep ++ ) % 100 == 0 ) )
-            hb_vmEvalBlockOrMacro( s_pEvalItem );
-      }
-      iRet = hb_ipRecv( hSocket, szRet, LETO_MSGSIZE_LEN );
-      if( iRet != LETO_MSGSIZE_LEN )
-         return 0;
-
-      lMsgLen = HB_GET_LE_UINT32( szRet );
-      if( ! lMsgLen )
-         return 0;
-
-      if( lMsgLen + 1 > s_lBufferLen )
-      {
-         s_lBufferLen = lMsgLen + 1;
-         s_szBuffer = (char*) hb_xrealloc( s_szBuffer, s_lBufferLen );
-      }
-
-      do
-      {
-         while( hb_ipDataReady( hSocket, 2 ) == 0 )
-         {
-         }
-         iRet = hb_ipRecv( hSocket, ptr, lMsgLen );
-         if( iRet <= 0 )
-         {
-            leto_writelog( NULL,0,"!ERROR! leto_Recv! broken message" );
-            break;
-         }
-         else
-         {
-            ptr += iRet;
-            lMsgLen -= iRet;
-         }
-      }
-      while( lMsgLen > 0 );
-
-      if( (((int)*s_szBuffer) & 0xFF) >= 10 && (ptr - s_szBuffer) > 2 && *(ptr-1) == '\n' && *(ptr-2) == '\r' )
-         *(ptr-2) = '\0';
-      else
-         *ptr = '\0';
-   }
-
-   return (long int) (ptr - s_szBuffer);
-}
-
-long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, ULONG ulLen )
-{
-   USHORT uiSizeLen = (pConnection->uiProto==1)? 0 : LETO_MSGSIZE_LEN;
-
-   if( !ulLen )
-      ulLen = strlen(sData);
-
-   if( uiSizeLen + ulLen > s_lBufferLen )
-   {
-      s_lBufferLen = uiSizeLen + ulLen;
-      s_szBuffer = (char*) hb_xrealloc( s_szBuffer, s_lBufferLen );
-   }
-
-   HB_PUT_LE_UINT32( s_szBuffer, ulLen );
-   memcpy( s_szBuffer + uiSizeLen, sData, ulLen );
-   if ( hb_ipSend( pConnection->hSocket, s_szBuffer, uiSizeLen + ulLen, LETO_TIMEOUT ) <= 0 )
-   {
-      return 0;
-   }
-   return leto_Recv( pConnection );
-}
-
 static int leto_SendRecv( LETOAREAP pArea, char * sData, ULONG ulLen, int iErr )
 {
    long int lRet;
+   char * ptr;
+
    lRet = leto_DataSendRecv( letoConnPool + pArea->uiConnection, sData, ulLen );
    if( !lRet )
       commonError( pArea, EG_DATATYPE, 1000, 0, NULL, 0, NULL );
-   else if( *s_szBuffer == '-' && iErr )
+   else if( *( ptr = leto_getRcvBuff() ) == '-' && iErr )
    {
-      commonError( pArea, EG_DATATYPE, iErr, 0, s_szBuffer, 0, NULL );
+      commonError( pArea, EG_DATATYPE, iErr, 0, ptr, 0, NULL );
       return 0;
    }
    return lRet;
 }
 
-int leto_getIpFromPath( const char * sSource, char * szAddr, int * piPort, char * szPath, BOOL bFile )
+BOOL leto_SetOptions( void )
 {
-   const char * ptrPort, * ptr = sSource;
-   char * ptrw;
+   LetoSetCentury( (hb_setGetCentury())? 'T' : 'F' );
+   LetoSetDateFormat( hb_setGetDateFormat() );
+   LetoSetCdp( hb_cdp_page->id );
 
-   while( strlen(ptr) >= 2 && (ptr[0] != '/' || ptr[1] != '/'))
-   {
-      if( ( ptrPort = strchr( ptr, ',' ) ) == NULL)
-         ptrPort = strchr( ptr, ';' );
-      if( ptrPort )
-         ptr = ptrPort + 1;
-      else
-         return 0;
-   }
-   ptr ++;
-   if( ( ptrPort = strchr( ptr,':' ) ) == NULL )
-   {
-      return 0;
-   }
-
-   ptr ++;
-   memcpy( szAddr, ptr, ptrPort-ptr );
-   szAddr[ptrPort-ptr] = '\0';
-   ptrPort ++;
-   sscanf( ptrPort, "%d", piPort );
-
-   if( szPath )
-   {
-      do ptrPort ++; while( *ptrPort>='0' && *ptrPort<='9' );
-      ptr = ptrPort;
-      ptrPort = sSource + strlen(sSource);
-      if( bFile )
-      {
-         while( *ptrPort != '/' && *ptrPort != '\\' ) ptrPort --;
-      }
-      if( ptrPort < ptr )
-      {
-         return 0;
-      }
-      else if( ptrPort >= ptr )
-      {
-         ptrPort ++;
-         if( *(ptr+2) == ':' )
-            ptr ++;
-         memcpy( szPath, ptr, ptrPort-ptr );
-      }
-      szPath[ptrPort-ptr] = '\0';
-      if( ( ptrw = strchr( szPath, ',' ) ) != NULL || ( ptrw = strchr( szPath, ';' ) ) != NULL)
-         ptrw[0] = '\0';
-      ptr = szPath;
-      while( ( ptr = strchr( ptr,'.' ) ) != NULL )
-      {
-         ptr ++;
-         if( *ptr == '.' )
-            return 0;
-      }
-   }
    return 1;
-}
-
-void leto_getFileFromPath( const char * sSource, char * szFile )
-{
-   const char * ptr = sSource + strlen(sSource) - 1;
-   while( ptr >= sSource && *ptr != '/' && *ptr != '\\' ) ptr --;
-   ptr ++;
-   strcpy( szFile, ptr );
-}
-
-LETOCONNECTION * leto_getConnectionPool( void )
-{
-   return letoConnPool;
-}
-
-LETOCONNECTION * leto_ConnectionFind( const char * szAddr, int iPort )
-{
-   int i;
-
-   for( i=0; i<uiConnCount; i++ )
-   {
-      if( letoConnPool[i].pAddr && letoConnPool[i].iPort == iPort &&
-              !strcmp(letoConnPool[i].pAddr,szAddr) )
-         return letoConnPool + i;
-   }
-   return NULL;
-}
-
-static const char * leto_GetServerCdp( LETOCONNECTION * pConnection, const char *szCdp )
-{
-   PCDPSTRU pCdps = pConnection->pCdpTable;
-
-   while( szCdp && pCdps )
-   {
-      if( !strcmp( szCdp, pCdps->szClientCdp ) )
-      {
-         szCdp = pCdps->szServerCdp;
-         break;
-      }
-      pCdps = pCdps->pNext;
-   }
-   return szCdp;
-}
-
-BOOL leto_CheckServerVer( LETOCONNECTION * pConnection, USHORT uiVer )
-{
-   return (USHORT) ( pConnection->uiMajorVer*100 + pConnection->uiMinorVer ) >= uiVer;
-}
-
-char * leto_NetName( void )
-{
-#if defined(HB_OS_UNIX) || ( defined(HB_OS_OS2) && defined(__GNUC__) )
-
-   #define MAXGETHOSTNAME 256
-
-   char szValue[MAXGETHOSTNAME + 1], *szRet;
-   USHORT uiLen;
-
-   szValue[ 0 ] = '\0';
-   gethostname( szValue, MAXGETHOSTNAME );
-
-#elif defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
-
-   DWORD uiLen = MAX_COMPUTERNAME_LENGTH+1;
-   char szValue[MAX_COMPUTERNAME_LENGTH+1], *szRet;
-
-   szValue[ 0 ] = '\0';
-   GetComputerName( szValue, &uiLen );
-
-#else
-
-   return NULL;
-
-#endif
-
-   uiLen = strlen( szValue );
-   szRet = (char*) malloc( uiLen+1 );
-   memcpy( szRet, szValue, uiLen );
-   szRet[uiLen] = '\0';
-   return szRet;
-
-}
-
-LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char * szUser, const char * szPass, int iTimeOut )
-{
-   HB_SOCKET_T hSocket;
-   char szData[300];
-   char szBuf[36];
-   char szKey[LETO_MAX_KEYLENGTH+1];
-   int i;
-   unsigned long int ulLen; 
-
-   for( i=0; i<uiConnCount; i++ )
-   {
-      if( !letoConnPool[i].pAddr )
-         break;
-   }
-   if( i == uiConnCount )
-   {
-      USHORT uiCurrentConn = 0;
-      if( pCurrentConn )
-         uiCurrentConn = pCurrentConn - letoConnPool;
-      letoConnPool = hb_xrealloc( letoConnPool, sizeof( LETOCONNECTION ) * (++uiConnCount) );
-      memset( letoConnPool+i, 0, sizeof( LETOCONNECTION ) );
-      if( pCurrentConn )
-         pCurrentConn = letoConnPool + uiCurrentConn;
-   }
-   if( iTimeOut == 0 )
-      iTimeOut = 5000;
-   hSocket = hb_ipConnect( szAddr, htons( iPort ), iTimeOut );
-   if( !hb_iperrorcode() )    
-   {
-      LETOCONNECTION * pConnection = letoConnPool + i;
-
-      pConnection->hSocket = hSocket;
-      pConnection->iPort = iPort;
-      pConnection->iTimeOut = iTimeOut;
-      pConnection->pAddr = (char*) hb_xgrab( strlen(szAddr)+1 );
-      memcpy( pConnection->pAddr, szAddr, strlen(szAddr) );
-      pConnection->pAddr[strlen(szAddr)] = '\0';
-
-      pConnection->bTransActive = FALSE;
-      pConnection->szTransBuffer = NULL;
-      pConnection->ulTransBuffLen = 0;
-      pConnection->ulTransDataLen = 0;
-      pConnection->ulRecsInTrans = 0;
-      pConnection->ulTransBlockLen = 0;
-
-      pConnection->bRefreshCount = TRUE;
-
-      pConnection->pBufCrypt = NULL;
-      pConnection->ulBufCryptLen = 0;
-
-      pConnection->uiBufRefreshTime = 100;
-
-      if( leto_RecvFirst( pConnection ) )
-      {
-         char * ptr, * pName, **pArgv;
-         char szFile[_POSIX_PATH_MAX + 1];
-         USHORT uiSizeLen = (pConnection->uiProto==1)? 0 : LETO_MSGSIZE_LEN;
-
-         ptr = strchr( s_szBuffer,';' );
-         if( ptr )
-         {
-            memcpy( pConnection->szVersion, s_szBuffer, ptr-s_szBuffer );
-            pConnection->szVersion[ptr-s_szBuffer] = '\0';
-            ptr ++;
-            if( *ptr++ == 'Y' )
-               pConnection->bCrypt = 1;
-            else
-               pConnection->bCrypt = 0;
-            if( *ptr == ';' )
-               pConnection->cDopcode[0] = '\0';
-            else
-            {
-               pConnection->cDopcode[0] = *ptr++;
-               pConnection->cDopcode[1] = *ptr;
-            }
-         }
-         else
-         {
-            memcpy( pConnection->szVersion, s_szBuffer, strlen(s_szBuffer) );
-            pConnection->szVersion[strlen(s_szBuffer)] = '\0';
-            pConnection->cDopcode[0] = '\0';
-         }
-         if( ( ptr = strstr( pConnection->szVersion, "v." ) ) != NULL )
-            sscanf( ptr+2, "%d.%d", &pConnection->uiMajorVer, &pConnection->uiMinorVer);
-         else
-            pConnection->uiMajorVer = pConnection->uiMinorVer = 0;
-
-         pName = leto_NetName();
-         pArgv = hb_cmdargARGV();
-         if( pArgv )
-            leto_getFileFromPath( *pArgv, szFile );
-         else
-            szFile[0] = '\0';
-         ptr = szData + uiSizeLen;
-         sprintf( ptr, "intro;%s;%s;%s;", 
-                        HB_LETO_VERSION_STRING, ( (pName) ? pName : "" ), szFile );
-         ptr += strlen( ptr );
-         if( pConnection->cDopcode[0] && szUser )
-         {
-            if( ( ulLen = strlen(szUser) ) > LETO_MAX_USERNAME )
-               ulLen = LETO_MAX_USERNAME;
-            memcpy( ptr, szUser, ulLen );
-            ptr += ulLen;
-         }
-         *ptr++ = ';';
-         if( pConnection->cDopcode[0] && szPass )
-         {
-            USHORT uiKeyLen = strlen(LETO_PASSWORD);
-
-            if( uiKeyLen > LETO_MAX_KEYLENGTH )
-               uiKeyLen = LETO_MAX_KEYLENGTH;
-            if( ( ulLen = strlen(szPass) ) > LETO_MAX_USERNAME )
-               ulLen = LETO_MAX_USERNAME;
-
-            memcpy( szKey, LETO_PASSWORD, uiKeyLen );
-            szKey[uiKeyLen] = '\0';
-            szKey[0] = pConnection->cDopcode[0];
-            szKey[1] = pConnection->cDopcode[1];
-            leto_encrypt( szPass, ulLen, szBuf, &ulLen, szKey );
-            leto_byte2hexchar( szBuf, (int)ulLen, ptr );
-            ptr += ulLen * 2;
-         }
-         *ptr++ = ';';
-         sprintf( ptr, "%s;%s;%c\r\n", leto_GetServerCdp( pConnection, hb_cdp_page->id ),
-                  hb_setGetDateFormat(), (hb_setGetCentury())? 'T' : 'F' );
-         if( pName )
-            free( pName );
-         if( leto_CheckServerVer( pConnection, 100 ) )
-         {
-            ulLen = strlen(szData+LETO_MSGSIZE_LEN);
-            HB_PUT_LE_UINT32( szData, ulLen );
-            if ( hb_ipSend( hSocket, szData, LETO_MSGSIZE_LEN+ulLen, LETO_TIMEOUT ) <= 0 )
-            {
-               s_iConnectRes = LETO_ERR_SEND;
-               return NULL;
-            }
-         }
-         else
-         {
-            if ( hb_ipSend( hSocket, szData, strlen(szData), -1 ) <= 0 )
-            {
-               s_iConnectRes = LETO_ERR_SEND;
-               return NULL;
-            }
-         }
-         if( !leto_Recv( pConnection ) )
-         {
-            if( pConnection->cDopcode[0] )
-               s_iConnectRes = LETO_ERR_LOGIN;
-            else
-               s_iConnectRes = LETO_ERR_RECV;
-            return NULL;
-         }
-         ptr = leto_firstchar();
-         if( !strncmp( ptr, "ACC", 3 ) )
-            s_iConnectRes = LETO_ERR_ACCESS;
-         else
-         {
-            pConnection->szVerHarbour[0] = '\0';
-            if( ( pName = strchr(ptr, ';') ) != NULL && (pName - ptr) >= 3 )
-            {
-               memcpy( pConnection->szAccess, ptr, (pName-ptr>3)? 3 : pName-ptr );
-               if( ( pName = strchr(pName+1, ';') ) != NULL )
-               {
-                  memcpy( pConnection->szVerHarbour, ptr, pName-ptr );
-                  pConnection->szVerHarbour[pName-ptr] = '\0';
-                  if( leto_CheckServerVer( pConnection, 211 ) && *( ptr = pName + 1 ) != '\0' )
-                  {
-                     int iDriver, iMemoType;
-                     sscanf(ptr, "%d;%d", &iDriver, &iMemoType );
-                     pConnection->uiDriver = iDriver;
-                     pConnection->uiMemoType = iMemoType;
-                  }
-               }
-            }
-            s_iConnectRes = 0;
-         }
-         return pConnection;
-      }        
-   }
-   else
-   {
-      s_iConnectRes = LETO_ERR_SOCKET;
-   }
-   return NULL;
 }
 
 BOOL leto_CheckArea( LETOAREAP pArea )
@@ -753,22 +233,15 @@ static ERRCODE leto_doClose( AREAP pArea, void * p )
    return SUCCESS;
 }
 
-static BOOL leto_CloseAll( LETOCONNECTION * pConnection )
+static int leto_CloseAll( LETOCONNECTION * pConnection )
 {
-   char szData[16];
 
    hb_rddIterateWorkAreas( leto_doClose, (void *) pConnection );
 
    if( pConnection->bCloseAll )
-   {
-      if( leto_CheckServerVer( pConnection, 100 ) )
-         sprintf( szData,"close_all;\r\n" );
-      else
-         sprintf( szData,"close;00;\r\n" );
-      if( !leto_DataSendRecv( pConnection, szData, 0 ) )
-         return FALSE;
-   }
-   return TRUE;
+      return LetoCloseAll( pConnection );
+
+   return 1;
 
 }
 
@@ -778,64 +251,9 @@ void leto_ConnectionClose( LETOCONNECTION * pConnection )
    if( pConnection->pAddr )
    {
       leto_CloseAll( pConnection );
-
-      hb_ipclose( pConnection->hSocket );
-      pConnection->hSocket = 0;
-      hb_xfree( pConnection->pAddr );
-      pConnection->pAddr = NULL;
-      if( pConnection->szPath )
-         hb_xfree( pConnection->szPath );
-      pConnection->szPath = NULL;
-      if( pConnection->pCdpTable )
-      {
-         PCDPSTRU pNext = pConnection->pCdpTable, pCdps;
-         while( pNext )
-         {
-            pCdps = pNext;
-            hb_xfree( pCdps->szClientCdp );
-            hb_xfree( pCdps->szServerCdp );
-            pNext = pCdps->pNext;
-            hb_xfree( pCdps );
-         }
-         pConnection->pCdpTable = NULL;
-      }
-
-      if( pConnection->szTransBuffer )
-      {
-         hb_xfree( pConnection->szTransBuffer );
-         pConnection->szTransBuffer = NULL;
-      }
-
-      if( pConnection->pBufCrypt )
-      {
-         hb_xfree( pConnection->pBufCrypt );
-         pConnection->pBufCrypt = NULL;
-      }
-      pConnection->ulBufCryptLen = 0;
+      LetoConnectionClose( pConnection );
    }
 
-}
-
-int leto_getCmdItem( char ** pptr, char * szDest )
-{
-   char * ptr = *pptr;
-
-   if( ptr )
-   {
-      while( *ptr && *ptr != ';' ) ptr++;
-      if( *ptr )
-      {
-         if( ptr > *pptr )
-            memcpy( szDest, *pptr, ptr-*pptr );
-         szDest[ptr-*pptr] = '\0';
-         *pptr = ptr;
-         return 1;
-      }
-      else
-         return 0;
-   }
-   else
-      return 0;
 }
 
 static BOOL leto_IsBinaryField( USHORT uiType, USHORT uiLen )
@@ -876,9 +294,9 @@ static char * leto_DecryptBuf( LETOCONNECTION * pConnection, const char * ptr, U
    if( *pulLen > pConnection->ulBufCryptLen )
    {
       if( !pConnection->ulBufCryptLen )
-         pConnection->pBufCrypt = (char*) hb_xgrab( *pulLen );
+         pConnection->pBufCrypt = (char*) malloc( *pulLen );
       else
-         pConnection->pBufCrypt = (char*) hb_xrealloc( pConnection->pBufCrypt, *pulLen );
+         pConnection->pBufCrypt = (char*) realloc( pConnection->pBufCrypt, *pulLen );
       pConnection->ulBufCryptLen = *pulLen;
    }
    leto_decrypt( ptr, *pulLen, pConnection->pBufCrypt, pulLen, LETO_PASSWORD );
@@ -905,7 +323,7 @@ static int leto_ParseRec( LETOAREAP pArea, const char * szData, BOOL bCrypt )
       ptr = leto_DecryptBuf( pConnection, ptr, &ulLen );
    }
 
-   leto_getCmdItem( &ptr, szTemp ); ptr ++;
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
 
    pArea->area.fBof = ( (*szTemp) & LETO_FLG_BOF );
    pArea->area.fEof = ( (*szTemp) & LETO_FLG_EOF );
@@ -1063,7 +481,7 @@ static int leto_ParseRec( LETOAREAP pArea, const char * szData, BOOL bCrypt )
          }
       pField ++;
    }
-   if( leto_CheckServerVer( pConnection, 100 ) )
+   if( LetoCheckServerVer( pConnection, 100 ) )
       if( *ptr == ';' )
       {
          sscanf( ptr+1, "%lu;" , &(pArea->ulRecCount) );
@@ -1181,15 +599,16 @@ static int leto_ParseRec( LETOAREAP pArea, const char * szData, BOOL bCrypt )
 
 static BOOL leto_CheckError( LETOAREAP pArea )
 {
-   if( *s_szBuffer == '-' )
+   char * ptr = leto_getRcvBuff();
+   if( *ptr == '-' )
    {
       ULONG uiGenCode, uiSubCode, uiOsCode, uiFlags;
       char * szFileName = NULL;
 
-      if( s_szBuffer[4] == ':' )
+      if( ptr[4] == ':' )
       {
-         sscanf( s_szBuffer+5, "%lu-%lu-%lu-%lu", &uiGenCode, &uiSubCode, &uiOsCode, &uiFlags );
-         if( ( szFileName = strchr( s_szBuffer+5, '\t' ) ) != NULL)
+         sscanf( ptr+5, "%lu-%lu-%lu-%lu", &uiGenCode, &uiSubCode, &uiOsCode, &uiFlags );
+         if( ( szFileName = strchr( ptr+5, '\t' ) ) != NULL)
             szFileName ++;
       }
       else
@@ -1210,10 +629,11 @@ static BOOL leto_CheckError( LETOAREAP pArea )
 
 static BOOL leto_checkLockError( LETOAREAP pArea )
 {
-   if( *s_szBuffer == '-' )
+   char * ptr = leto_getRcvBuff();
+   if( *ptr == '-' )
    {
-      if( *(s_szBuffer+3) != '4' )
-         commonError( pArea, EG_DATATYPE, 1021, 0, s_szBuffer, 0, NULL );
+      if( *(ptr+3) != '4' )
+         commonError( pArea, EG_DATATYPE, 1021, 0, ptr, 0, NULL );
       return TRUE;
    }
    return FALSE;
@@ -1229,7 +649,7 @@ static void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULO
    if( !pConnection->szTransBuffer )
    {
       pConnection->ulTransBuffLen = leto_TransBlockLen( pConnection, ulLen );
-      pConnection->szTransBuffer = (BYTE*) hb_xgrab( pConnection->ulTransBuffLen );
+      pConnection->szTransBuffer = (BYTE*) malloc( pConnection->ulTransBuffLen );
       memcpy( pConnection->szTransBuffer+4, "ta;", 3 );
    }
    if( !pConnection->ulTransDataLen )
@@ -1237,7 +657,7 @@ static void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULO
    if( pConnection->ulTransBuffLen - pConnection->ulTransDataLen <= ulLen )
    {
       pConnection->ulTransBuffLen = pConnection->ulTransDataLen + leto_TransBlockLen( pConnection, ulLen );
-      pConnection->szTransBuffer = (BYTE*) hb_xrealloc( pConnection->szTransBuffer, pConnection->ulTransBuffLen );
+      pConnection->szTransBuffer = (BYTE*) realloc( pConnection->szTransBuffer, pConnection->ulTransBuffLen );
    }
    memcpy( pConnection->szTransBuffer+pConnection->ulTransDataLen, pData, ulLen );
    pConnection->ulTransDataLen += ulLen;
@@ -1487,10 +907,10 @@ static char * SkipTagInfo( LETOAREAP pArea, char * pBuffer )
    char * ptr = pBuffer;
    int iOrders, i;
 
-   leto_getCmdItem( &ptr, szData ); ptr ++;
+   LetoGetCmdItem( &ptr, szData ); ptr ++;
    sscanf( szData, "%d" , &iOrders );
 
-   if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
       iOrders *= 9;
    else
       iOrders *= 6;
@@ -1554,7 +974,7 @@ static char * ParseTagInfo( LETOAREAP pArea, char * pBuffer )
    char szData[_POSIX_PATH_MAX];
    char * ptr = pBuffer;
 
-   leto_getCmdItem( &ptr, szData ); ptr ++;
+   LetoGetCmdItem( &ptr, szData ); ptr ++;
    sscanf( szData, "%d" , &iOrders );  
 
    if( iOrders )
@@ -1576,7 +996,7 @@ static char * ParseTagInfo( LETOAREAP pArea, char * pBuffer )
          memset( pTagInfo, 0, sizeof(LETOTAGINFO) );
 
          pTagInfo->uiTag = pArea->iOrders + uiCount;
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          if( ( iLen = strlen(szData) ) != 0 )
          {
             pTagInfo->BagName = (char*) hb_xgrab( iLen+1 );
@@ -1584,7 +1004,7 @@ static char * ParseTagInfo( LETOAREAP pArea, char * pBuffer )
             pTagInfo->BagName[iLen] = '\0';
             hb_strLower( pTagInfo->BagName, iLen );
          }
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          if( ( iLen = strlen(szData) ) != 0 )
          {
             if( iLen > LETO_MAX_TAGNAME )
@@ -1594,31 +1014,31 @@ static char * ParseTagInfo( LETOAREAP pArea, char * pBuffer )
             pTagInfo->TagName[iLen] = '\0';
             hb_strLower( pTagInfo->TagName, iLen );
          }
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          leto_CreateKeyExpr( pArea, pTagInfo, szData, NULL );
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          if( ( iLen = strlen(szData) ) != 0 )
          {
             pTagInfo->ForExpr = (char*) hb_xgrab( iLen+1 );
             memcpy( pTagInfo->ForExpr, szData, iLen );
             pTagInfo->ForExpr[iLen] = '\0';
          }
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          pTagInfo->KeyType = szData[0];
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          sscanf( szData, "%d", &iLen );
          pTagInfo->KeySize = iLen;
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
          {
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             pTagInfo->UsrAscend = !( szData[0] == 'T' );
 
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             pTagInfo->UniqueKey = ( szData[0] == 'T' );
 
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             pTagInfo->Custom = ( szData[0] == 'T' );
             ScanIndexFields( pArea, pTagInfo );
          }
@@ -1773,7 +1193,7 @@ static ERRCODE letoGoBottom( LETOAREAP pArea )
 static void leto_GotoEof( LETOAREAP pArea )
 {
 
-   if( !leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( !LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
    {
       ULONG  ulRecCount;
       SELF_RECCOUNT( ( AREAP ) pArea, &ulRecCount );
@@ -2306,13 +1726,13 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
       }
    }
 
-   if( leto_CheckServerVer( pConnection, 100 ) )
+   if( LetoCheckServerVer( pConnection, 100 ) )
    {
       sprintf( sData,"skip;%lu;%ld;%lu;%s;%c;", pArea->hTable, lToSkip,
          pArea->ulRecNo, (pArea->pTagCurrent)? pArea->pTagCurrent->TagName:"",
          (char)( (hb_setGetDeleted())? 0x41 : 0x40 ) );
       ptr = sData + strlen(sData);
-      if( leto_CheckServerVer( pConnection, 206 ) && pArea->uiSkipBuf > 0 )
+      if( LetoCheckServerVer( pConnection, 206 ) && pArea->uiSkipBuf > 0 )
       {
          sprintf(ptr, "%d;", pArea->uiSkipBuf );
          ptr += strlen(ptr);
@@ -2327,15 +1747,16 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
 
    if ( !leto_SendRecv( pArea, sData, 0, 1021 ) ) return FAILURE;
 
-   if( ( iLenLen = (((int)*s_szBuffer) & 0xFF) ) >= 10 )
+   ptr = leto_getRcvBuff();
+   if( ( iLenLen = (((int)*ptr) & 0xFF) ) >= 10 )
    {
       commonError( pArea, EG_DATATYPE, 1020, 0, NULL, 0, NULL );
       return FAILURE;
    }
    pArea->BufDirection = (lToSkip > 0 ? 1 : -1);
 
-   ulDataLen = leto_b2n( s_szBuffer+1, iLenLen );
-   ptr = s_szBuffer + 2 + iLenLen;
+   ulDataLen = leto_b2n( ptr+1, iLenLen );
+   ptr += 2 + iLenLen;
    leto_ParseRec( pArea, ptr, TRUE );
 
    if( ulDataLen > 1 ) 
@@ -2480,7 +1901,7 @@ static ERRCODE letoGetRec( LETOAREAP pArea, BYTE ** pBuffer )
 
 char * leto_DecryptText( LETOCONNECTION * pConnection, ULONG * pulLen )
 {
-   char * ptr = s_szBuffer;
+   char * ptr = leto_getRcvBuff();
    USHORT iLenLen = ((int)*ptr++) & 0xFF;
 
    if( !iLenLen || iLenLen >= 10 )
@@ -2502,7 +1923,7 @@ static ERRCODE leto_GetMemoValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pIte
    char szData[32], *ptr;
    ULONG ulLen;
 
-   if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
       sprintf( szData,"memo;%lu;get;%lu;%d;\r\n", pArea->hTable, pArea->ulRecNo, uiIndex+1 );
    else
       sprintf( szData,"memo;get;%lu;%lu;%d;\r\n", pArea->hTable, pArea->ulRecNo, uiIndex+1 );
@@ -2796,14 +2217,14 @@ static ERRCODE leto_PutMemoValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pIte
    if( ( pArea->uiUpdated & 1 ) && pConnection->bTransActive )
    {
       pArea->uiUpdated &= ( !1 );
-      if( leto_CheckServerVer( pConnection, 100 ) )
+      if( LetoCheckServerVer( pConnection, 100 ) )
          sprintf( szData+4,"memo;%lu;add;%lu;%d;", pArea->hTable, pArea->ulRecNo, uiIndex+1 );
       else
          sprintf( szData+4,"memo;add;%lu;%lu;%d;", pArea->hTable, pArea->ulRecNo, uiIndex+1 );
    }
    else
    {
-      if( leto_CheckServerVer( pConnection, 100 ) )
+      if( LetoCheckServerVer( pConnection, 100 ) )
          sprintf( szData+4,"memo;%lu;put;%lu;%d;", pArea->hTable, pArea->ulRecNo, uiIndex+1 );
       else
          sprintf( szData+4,"memo;put;%lu;%lu;%d;", pArea->hTable, pArea->ulRecNo, uiIndex+1 );
@@ -3239,7 +2660,7 @@ static ERRCODE letoRecCount( LETOAREAP pArea, ULONG * pRecCount )
    char szData[32], * ptr;
    HB_TRACE(HB_TR_DEBUG, ("letoRecCount(%p, %p)", pArea, pRecCount));
 
-   if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
    {
       if( letoConnPool[pArea->uiConnection].bRefreshCount || !pArea->ulRecCount )
       {
@@ -3338,7 +2759,7 @@ static ERRCODE letoRecInfo( LETOAREAP pArea, PHB_ITEM pRecID, USHORT uiInfoType,
                sprintf( szData,"islock;%lu;%lu;\r\n", pArea->hTable, ulRecNo );
                if ( !leto_SendRecv( pArea, szData, 0, 1021 ) || leto_checkLockError( pArea ) ) return FAILURE;
                ptr = leto_firstchar();
-               leto_getCmdItem( &ptr, szData ); ptr ++;
+               LetoGetCmdItem( &ptr, szData ); ptr ++;
                hb_itemPutL( pInfo, szData[0] == 'T' );
             }
          }
@@ -3522,7 +2943,7 @@ static ERRCODE letoClose( LETOAREAP pArea )
    {
       if( !pConnection->bCloseAll )
       {
-         if( leto_CheckServerVer( pConnection, 100 ) )
+         if( LetoCheckServerVer( pConnection, 100 ) )
             sprintf( szData,"close;%lu;\r\n", pArea->hTable );
          else
             sprintf( szData,"close;01;%lu;\r\n", pArea->hTable );
@@ -3577,16 +2998,6 @@ static ERRCODE letoClose( LETOAREAP pArea )
       pArea->ulLocksMax = pArea->ulLocksAlloc = 0;
    }
    return SUCCESS;
-}
-
-const char * leto_RemoveIpFromPath(const char * szPath)
-{
-   const char * ptr;
-   if( strlen(szPath) > 2 && szPath[0]=='/'  && szPath[1]=='/' && (ptr=strchr(szPath+2, '/')) != NULL )
-   {
-      szPath = ptr + 1;
-   }
-   return szPath;
 }
 
 static LETOCONNECTION * leto_OpenConnection( LETOAREAP pArea, LPDBOPENINFO pOpenInfo, char * szFile, BOOL bCreate)
@@ -3671,7 +3082,8 @@ static LETOCONNECTION * leto_OpenConnection( LETOAREAP pArea, LPDBOPENINFO pOpen
          }
       }
       if( ( pConnection = leto_ConnectionFind( szAddr, iPort ) ) == NULL &&
-          ( pConnection = leto_ConnectionNew( szAddr, iPort, NULL, NULL, 0 ) ) == NULL )
+          leto_SetOptions() &&
+          ( pConnection = LetoConnectionNew( szAddr, iPort, NULL, NULL, 0 ) ) == NULL )
       {
          commonError( pArea, EG_OPEN, (bCreate ? 1 : 102), 0, ( char * ) pOpenInfo->abName, 0, NULL );
          return NULL;
@@ -3684,13 +3096,13 @@ static char * leto_ReadMemoInfo( LETOAREAP pArea, char * ptr )
 {
    char szTemp[14];
 
-   if( leto_getCmdItem( &ptr, szTemp ) )
+   if( LetoGetCmdItem( &ptr, szTemp ) )
    {
       ptr ++;
       strcpy( pArea->szMemoExt, szTemp );
       pArea->bMemoType = ( *ptr - '0' );
       ptr += 2;
-      leto_getCmdItem( &ptr, szTemp ); ptr ++;
+      LetoGetCmdItem( &ptr, szTemp ); ptr ++;
       sscanf( szTemp, "%d" , (int*) &pArea->uiMemoVersion );
    }
 
@@ -3725,7 +3137,7 @@ static ERRCODE letoCreate( LETOAREAP pArea, LPDBOPENINFO pCreateInfo )
    uiLen = (unsigned int) pArea->area.uiFieldCount * 24 + 10 + _POSIX_PATH_MAX;
    szData = (char *) hb_xgrab( uiLen );
    ptr = szData;
-   if( leto_CheckServerVer( pConnection, 100 ) )
+   if( LetoCheckServerVer( pConnection, 100 ) )
       sprintf( szData,"creat;%s;%s;%d;", szFile, pCreateInfo->atomAlias, pArea->area.uiFieldCount );
    else
       sprintf( szData,"creat;01;%d;%s;%s;%d;", pCreateInfo->uiArea, szFile, pCreateInfo->atomAlias, pArea->area.uiFieldCount );
@@ -3820,7 +3232,7 @@ static ERRCODE letoCreate( LETOAREAP pArea, LPDBOPENINFO pCreateInfo )
    pArea->uiSkipBuf = 0;
 
    ptr = leto_firstchar();
-   leto_getCmdItem( &ptr, szTemp ); ptr ++;
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
    sscanf( szTemp, "%lu" , &(pArea->hTable) );
    if( *ptr == '1' )
      pArea->uiDriver = 1;
@@ -3828,7 +3240,7 @@ static ERRCODE letoCreate( LETOAREAP pArea, LPDBOPENINFO pCreateInfo )
 
    leto_ParseRec( pArea, ptr, TRUE );
 
-   if( leto_CheckServerVer( pConnection, 100 ) )
+   if( LetoCheckServerVer( pConnection, 100 ) )
    {
       ptr += HB_GET_LE_UINT24( ptr ) + 3;
       leto_ReadMemoInfo( pArea, ptr );
@@ -3901,7 +3313,7 @@ static ERRCODE letoInfo( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
 
       case DBI_DB_VERSION     :   /* HOST driver Version */
       {
-         hb_itemPutC( pItem, letoConnPool[pArea->uiConnection].szVersion );
+         hb_itemPutC( pItem, LetoGetServerVer( &(letoConnPool[pArea->uiConnection]) ) );
          break;
       }
 
@@ -3932,7 +3344,7 @@ static ERRCODE letoInfo( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
             return FAILURE;
 
          ptr = leto_firstchar();
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
 
          hb_itemPutC( pItem, szData );
          break;
@@ -4021,7 +3433,7 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
       }
       leto_getFileFromPath( pOpenInfo->abName, szFile+uiLen );
 
-      if( leto_CheckServerVer( pConnection, 100 ) )
+      if( LetoCheckServerVer( pConnection, 100 ) )
          sprintf( szData,"open;%s;%s;%c%c;%s;\r\n", szFile,
              pOpenInfo->atomAlias,
              (pOpenInfo->fShared)? 'T':'F',(pOpenInfo->fReadonly)? 'T':'F',
@@ -4034,12 +3446,13 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
       if ( !leto_SendRecv( pArea, szData, 0, 0 ) )
          return FAILURE;
 
-      if( *s_szBuffer == '-' )
+      ptr = leto_getRcvBuff();
+      if( *ptr == '-' )
       {
-         if( *(s_szBuffer+3) == '4' )
-            commonError( pArea, EG_OPEN, 103, 32, s_szBuffer, EF_CANDEFAULT, NULL );
+         if( *(ptr+3) == '4' )
+            commonError( pArea, EG_OPEN, 103, 32, ptr, EF_CANDEFAULT, NULL );
          else
-            commonError( pArea, EG_DATATYPE, 1021, 0, s_szBuffer, 0, NULL );
+            commonError( pArea, EG_DATATYPE, 1021, 0, ptr, 0, NULL );
          return FAILURE;
       }
       pArea->szDataFileName = hb_strdup( (char *) ( pOpenInfo->abName ) );
@@ -4067,7 +3480,7 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
 
    hb_strLower( pArea->szDataFileName, strlen(pArea->szDataFileName) );
    // Read table ID
-   leto_getCmdItem( &ptr, szTemp ); ptr ++;
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
    sscanf( szTemp, "%lu" , &(pArea->hTable) );
 
    pArea->pTagCurrent    = NULL;
@@ -4093,19 +3506,19 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
      pArea->uiDriver = 1;
    ptr ++; ptr++;
 
-   if( leto_CheckServerVer( pConnection, 100 ) )
+   if( LetoCheckServerVer( pConnection, 100 ) )
    {
       // Read MEMOEXT, MEMOTYPE, MEMOVERSION
       ptr = leto_ReadMemoInfo( pArea, ptr );
       // for DBI_LASTUPDATE
-      if( leto_CheckServerVer( pConnection, 208 ) )
+      if( LetoCheckServerVer( pConnection, 208 ) )
       {
-         leto_getCmdItem( &ptr, szTemp ); ptr ++;
+         LetoGetCmdItem( &ptr, szTemp ); ptr ++;
          pArea->lLastUpdate = hb_dateEncStr( szTemp );
       }
    }
    // Read number of fields
-   leto_getCmdItem( &ptr, szTemp ); ptr ++;
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
    sscanf( szTemp, "%d" , &uiFields );
 
    SELF_SETFIELDEXTENT( ( AREAP ) pArea, uiFields );
@@ -4116,17 +3529,17 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
    {
       memset( &dbFieldInfo, 0, sizeof( dbFieldInfo ) );
       // Read field name
-      leto_getCmdItem( &ptr, szName ); ptr ++;
+      LetoGetCmdItem( &ptr, szName ); ptr ++;
       dbFieldInfo.atomName = szName;
       // Read field type
-      leto_getCmdItem( &ptr, szTemp ); ptr ++;
+      LetoGetCmdItem( &ptr, szTemp ); ptr ++;
       cType = *szTemp;
       // Read field length
-      leto_getCmdItem( &ptr, szTemp ); ptr ++;
+      LetoGetCmdItem( &ptr, szTemp ); ptr ++;
       sscanf( szTemp, "%d" , &uiLen );
       dbFieldInfo.uiLen = uiLen;
       // Read field decimals
-      leto_getCmdItem( &ptr, szTemp ); ptr ++;
+      LetoGetCmdItem( &ptr, szTemp ); ptr ++;
       sscanf( szTemp, "%d" , &uiLen );
       dbFieldInfo.uiDec = uiLen;
 
@@ -4527,7 +3940,7 @@ static ERRCODE letoOrderListAdd( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
       pTagInfo = pTagInfo->pNext;
    }
 
-   if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
       sprintf( szData,"open_i;%lu;%s;\r\n", pArea->hTable, szBagName );
    else
       sprintf( szData,"open;02;%lu;%s;\r\n", pArea->hTable, szBagName );
@@ -4545,7 +3958,7 @@ static ERRCODE letoOrderListAdd( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
    else
       pArea->pTagCurrent = pArea->pTagInfo;
 
-   if( (iRcvLen - 4) > (ptr - s_szBuffer) )
+   if( (iRcvLen - 4) > (ptr - leto_getRcvBuff()) )
       leto_ParseRec( pArea, ptr, TRUE );
 
    return SUCCESS;
@@ -4563,7 +3976,7 @@ static ERRCODE letoOrderListClear( LETOAREAP pArea )
 
    if( pTagInfo )
    {
-      if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+      if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
          sprintf( szData,"ord;%lu;04;\r\n", pArea->hTable );
       else
          sprintf( szData,"ord;04;%lu;\r\n", pArea->hTable );
@@ -4608,7 +4021,7 @@ static ERRCODE letoOrderListDelete( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListDelete(%p, %p)", pArea, pOrderInfo));
 
-   if( !hb_setGetAutOpen() && leto_CheckServerVer( pConnection, 210 ) && pOrderInfo->atomBagName )
+   if( !hb_setGetAutOpen() && LetoCheckServerVer( pConnection, 210 ) && pOrderInfo->atomBagName )
    {
       szBagName = leto_RemoveIpFromPath( hb_itemGetCPtr( pOrderInfo->atomBagName ) );
 
@@ -4714,7 +4127,7 @@ static ERRCODE letoOrderListRebuild( LETOAREAP pArea )
    if( pArea->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
-   if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
       sprintf( szData,"ord;%lu;03;\r\n", pArea->hTable );
    else
       sprintf( szData,"ord;03;%lu;\r\n", pArea->hTable );
@@ -4779,7 +4192,7 @@ static ERRCODE letoOrderCreate( LETOAREAP pArea, LPDBORDERCREATEINFO pOrderInfo 
       szBagName = NULL;
 
    szFor = ( lpdbOrdCondInfo && lpdbOrdCondInfo->abFor)? lpdbOrdCondInfo->abFor : "";
-   if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
       sprintf( szData,"creat_i;%lu;%s;%s;%s;%c;%s;%s;%s;%lu;%lu;%s;%s;%s;%s;%s;%s;%s;\r\n", pArea->hTable,
          (szBagName ? szBagName : ""),
          (pOrderInfo->atomBagName)? (char*)pOrderInfo->atomBagName : "",
@@ -4813,13 +4226,17 @@ static ERRCODE letoOrderCreate( LETOAREAP pArea, LPDBORDERCREATEINFO pOrderInfo 
          );
        
    if( lpdbOrdCondInfo && lpdbOrdCondInfo->itmCobEval )
+   {
       s_pEvalItem = lpdbOrdCondInfo->itmCobEval;
-
+      leto_setCallback( funcEvalItem );
+   }
    iRes = leto_SendRecv( pArea, szData, 0, 0 );
 
    if( s_pEvalItem )
+   {
       s_pEvalItem = NULL;
-
+      leto_setCallback( NULL );
+   }
    if ( !iRes || leto_CheckError( pArea ) )
       return FAILURE;
 
@@ -5038,7 +4455,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
             sprintf( szData,"rcou;%lu;\r\n", pArea->hTable );
          else
          {
-            if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+            if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
                sprintf( szData,"ord;%lu;01;%s;\r\n", pArea->hTable, pTagInfo->TagName );
             else
                sprintf( szData,"ord;01;%lu;%s;\r\n", pArea->hTable, pTagInfo->TagName );
@@ -5046,7 +4463,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
          if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
 
          ptr = leto_firstchar();
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          sscanf( szData, "%lu" , &ul );
          hb_itemPutNL( pOrderInfo->itmResult, ul );
 
@@ -5214,7 +4631,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
             if( pArea->uiUpdated )
                leto_PutRec( pArea, FALSE );
 
-            if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+            if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
                sprintf( szData,"ord;%lu;%s;%s;%lu;\r\n", pArea->hTable,
                   ( uiIndex == DBOI_POSITION ? "05" : "09" ),
                   pTagInfo->TagName, hb_itemGetNL( pOrderInfo->itmNewVal ) );
@@ -5240,7 +4657,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
                hb_itemPutNL( pOrderInfo->itmResult, FALSE );
                break;
             }
-            if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+            if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
                sprintf( szData,"ord;%lu;%s;%s;%lu;\r\n", pArea->hTable,
                   ( uiIndex == DBOI_POSITION ? "02" : "08" ),
                   pTagInfo->TagName, pArea->ulRecNo );
@@ -5251,7 +4668,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
             if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
 
             ptr = leto_firstchar();
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             sscanf( szData, "%lu" , &ul );
             hb_itemPutNL( pOrderInfo->itmResult, ul );
          }
@@ -5267,7 +4684,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
          if( pArea->uiUpdated )
             leto_PutRec( pArea, FALSE );
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
             sprintf( szData,"ord;%lu;06;%s;%lu;%c;%lu;\r\n", pArea->hTable,
                (pTagInfo)? pTagInfo->TagName:"",
                pArea->ulRecNo, (char)( (hb_setGetDeleted())? 0x41 : 0x40 ),
@@ -5372,7 +4789,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
             if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
 
             ptr = leto_firstchar();
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             bResult = ( szData[0] == 'T' );
             if( uiIndex == DBOI_ISDESC )
                pTagInfo->UsrAscend = !bResult;
@@ -5490,7 +4907,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
       {
          char * ptr;
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
          {
             char szData1[LETO_MAX_KEY+LETO_MAX_TAGNAME+56];
             char szKey[LETO_MAX_KEY+1];
@@ -5521,7 +4938,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
             if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
          }
          ptr = leto_firstchar();
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          pOrderInfo->itmResult = hb_itemPutL( pOrderInfo->itmResult, szData[0] == 'T' );
          break;
       }
@@ -5613,7 +5030,7 @@ static ERRCODE letoSetFilter( LETOAREAP pArea, LPDBFILTERINFO pFilterInfo )
          }
          hb_xfree( pData );
 
-         if( *s_szBuffer == '-' )
+         if( *(leto_getRcvBuff()) == '-' )
             pArea->area.dbfi.fOptimized = FALSE;
          else
             pArea->area.dbfi.fOptimized = TRUE;
@@ -5680,7 +5097,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
          if( !pArea->fShared || pArea->fFLocked || ( ulRecNo == pArea->ulRecNo ? pArea->fRecLocked : leto_IsRecLocked(pArea, ulRecNo) ) )
             return SUCCESS;
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
             sprintf( szData,"lock;%lu;01;%lu;\r\n", pArea->hTable, ulRecNo );
          else
             sprintf( szData,"lock;01;%lu;%lu;\r\n", pArea->hTable, ulRecNo );
@@ -5699,7 +5116,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
          if( !pArea->fShared || pArea->fFLocked || ( ulRecNo == pArea->ulRecNo ? !pArea->fRecLocked : !leto_IsRecLocked(pArea, ulRecNo) ) )
             return SUCCESS;
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
             sprintf( szData,"unlock;%lu;01;%lu;\r\n", pArea->hTable, ulRecNo );
          else
             sprintf( szData,"unlock;01;%lu;%lu;\r\n", pArea->hTable, ulRecNo );
@@ -5713,7 +5130,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
          if( !pArea->fShared || pArea->fFLocked )
             return SUCCESS;
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
             sprintf( szData,"lock;%lu;02;\r\n", pArea->hTable );
          else
             sprintf( szData,"lock;02;%lu;\r\n", pArea->hTable );
@@ -5731,7 +5148,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
          if( !pArea->fShared )
             return SUCCESS;
 
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
             sprintf( szData,"unlock;%lu;02;\r\n", pArea->hTable );
          else
             sprintf( szData,"unlock;02;%lu;\r\n", pArea->hTable );
@@ -5853,7 +5270,7 @@ static ERRCODE letoDrop( LPRDDNODE pRDD, PHB_ITEM pItemTable, PHB_ITEM pItemInde
       {
          char * ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          if( szData[0] == 'T' )
             return SUCCESS;
       }
@@ -5889,7 +5306,7 @@ static ERRCODE letoExists( LPRDDNODE pRDD, PHB_ITEM pItemTable, PHB_ITEM pItemIn
       {
          char * ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          if( szData[0] == 'T' )
             return SUCCESS;
       }
@@ -5928,7 +5345,7 @@ static ERRCODE letoRename( LPRDDNODE pRDD, PHB_ITEM pItemTable, PHB_ITEM pItemIn
       {
          char * ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          if( szData[0] == 'T' )
             return SUCCESS;
       }
@@ -5939,16 +5356,20 @@ static ERRCODE letoRename( LPRDDNODE pRDD, PHB_ITEM pItemTable, PHB_ITEM pItemIn
 
 static ERRCODE letoInit( LPRDDNODE pRDD )
 {
+   char szFile[_POSIX_PATH_MAX + 1], **pArgv;
+
    HB_SYMBOL_UNUSED( pRDD );
 
-   hb_ipInit();
+   LetoInit();
 
-   letoConnPool = hb_xgrab( sizeof( LETOCONNECTION ) );
-   uiConnCount = 1;
-   memset( letoConnPool, 0, sizeof(LETOCONNECTION) * uiConnCount );
+   pArgv = hb_cmdargARGV();
+   if( pArgv )
+      leto_getFileFromPath( *pArgv, szFile );
+   else
+      szFile[0] = '\0';
 
-   s_szBuffer = (char*) hb_xgrab(HB_SENDRECV_BUFFER_SIZE);
-   s_lBufferLen = HB_SENDRECV_BUFFER_SIZE;
+   LetoSetModName( szFile );
+
    return SUCCESS;
 }
 
@@ -5958,22 +5379,15 @@ static ERRCODE letoExit( LPRDDNODE pRDD )
    HB_SYMBOL_UNUSED( pRDD );
 
    if( letoConnPool )
-   {
       for( i=0; i<uiConnCount; i++ )
          leto_ConnectionClose( letoConnPool + i );
-      hb_xfree( letoConnPool );
-      letoConnPool = NULL;
-   }
-   uiConnCount = 0;
 
+   LetoExit( 0 );
    if( s_uiRddCount )
    {
       if( ! --s_uiRddCount )
       {
-         if( s_szBuffer )
-            hb_xfree( s_szBuffer );
-         s_szBuffer = NULL;
-         s_lBufferLen = 0;
+         LetoExit( 1 );
 #ifdef __BORLANDC__
    #pragma option push -w-pro
 #endif
@@ -5981,7 +5395,6 @@ static ERRCODE letoExit( LPRDDNODE pRDD )
 #ifdef __BORLANDC__
    #pragma option pop
 #endif
-         hb_ipCleanup();
       }
    }
 
@@ -6365,7 +5778,7 @@ HB_FUNC( LETO_ROLLBACK )
          ULONG ulLen;
 
          memcpy( szData+4, "ta;", 3 );
-         if( leto_CheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
+         if( LetoCheckServerVer( letoConnPool+pArea->uiConnection, 100 ) )
          {
             ulLen = 8;
             HB_PUT_LE_UINT32( szData+7, 0 );
@@ -6416,7 +5829,7 @@ HB_FUNC( LETO_COMMITTRANSACTION )
    if( pConnection->szTransBuffer && ( pConnection->ulTransDataLen > (ULONG)pConnection->uiTBufOffset ) )
    {
       ulLen = pConnection->ulTransDataLen - 4;
-      if( leto_CheckServerVer( pConnection, 100 ) )
+      if( LetoCheckServerVer( pConnection, 100 ) )
       {
          HB_PUT_LE_UINT32( pConnection->szTransBuffer+7, pConnection->ulRecsInTrans );
       }
@@ -6807,7 +6220,7 @@ HB_FUNC( LETO_PARSERECORDS )
 
 HB_FUNC( LETO_CONNECT_ERR )
 {
-   hb_retni( s_iConnectRes );
+   hb_retni( LetoGetConnectRes() );
 }
 
 HB_FUNC( LETO_ISFLTOPTIM )

@@ -63,19 +63,10 @@ static int iFError = 0;
 extern LETOCONNECTION * pCurrentConn;
 extern USHORT uiConnCount;
 
-extern int leto_getIpFromPath( const char * sSource, char * szAddr, int * piPort, char * szPath, BOOL lFile );
-extern void leto_getFileFromPath( const char * sSource, char * szFile );
-extern const char * leto_RemoveIpFromPath(const char * szPath);
-
-extern LETOCONNECTION * leto_ConnectionFind( const char * szAddr, int iPort );
-extern LETOCONNECTION * leto_ConnectionNew( const char * szAddr, int iPort, const char * szUser, const char * szPass, int iTimeOut );
-extern void leto_ConnectionClose( LETOCONNECTION * pConnection );
-extern LETOCONNECTION * leto_getConnectionPool( void );
-extern LETOCONNECTION * leto_getConnection( int iParam );
-extern long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, ULONG ulLen );
-extern BOOL leto_CheckServerVer( LETOCONNECTION * pConnection, USHORT uiVer );
-char * leto_firstchar( void );
-int leto_getCmdItem( char ** pptr, char * szDest );
+BOOL leto_SetOptions( void );
+void leto_ConnectionClose( LETOCONNECTION * pConnection );
+LETOCONNECTION * leto_getConnectionPool( void );
+LETOCONNECTION * leto_getConnection( int iParam );
 char * leto_DecryptText( LETOCONNECTION * pConnection, ULONG * pulLen );
 BOOL leto_CheckArea( LETOAREAP pArea );
 
@@ -87,7 +78,8 @@ static LETOCONNECTION * letoParseFile( const char *szSource, char *szFile)
 
    if( leto_getIpFromPath( szSource, szAddr, &iPort, szFile, TRUE ) &&
        ( ( ( pConnection = leto_ConnectionFind( szAddr, iPort ) ) != NULL ) ||
-         ( ( pConnection = leto_ConnectionNew( szAddr, iPort, NULL, NULL, 0 ) ) ) != NULL ) )
+         ( leto_SetOptions() && 
+         ( ( pConnection = LetoConnectionNew( szAddr, iPort, NULL, NULL, 0 ) ) ) != NULL ) ) )
    {
       unsigned int uiLen = strlen( szFile );
 
@@ -140,7 +132,7 @@ HB_FUNC( LETO_FILE )
       else
       {
          char * ptr = leto_firstchar();
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
 
          hb_retl( szData[0] == 'T' );
       }
@@ -169,9 +161,9 @@ HB_FUNC( LETO_FERASE )
       {
          char * ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          hb_retni( ( szData[0] == 'T') ? 0 : -1 );
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          sscanf( szData, "%d", &iFError );
       }
    }
@@ -203,9 +195,9 @@ HB_FUNC( LETO_FRENAME )
       {
          char * ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          hb_retni( ( szData[0] == 'T') ? 0 : -1 );
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          sscanf( szData, "%d", &iFError );
       }
    }
@@ -269,7 +261,7 @@ HB_FUNC( LETO_FILEREAD )
          char * ptr = leto_firstchar();
          if( *(ptr-1) == '+' )
          {
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             if( szData[0] == 'T' )
             {
                ulLen = HB_GET_LE_UINT32( ptr );
@@ -287,7 +279,7 @@ HB_FUNC( LETO_FILEREAD )
             }
             else
             {
-               leto_getCmdItem( &ptr, szData );
+               LetoGetCmdItem( &ptr, szData );
                sscanf( szData, "%d;", &iFError );
             }
          }
@@ -332,14 +324,14 @@ HB_FUNC( LETO_MEMOWRITE )
          char * ptr = leto_firstchar();
          if( *(ptr-1) == '+' )
          {
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             if( szData[0] == 'T' )
             {
                hb_retl( TRUE );
             }
             else
             {
-               leto_getCmdItem( &ptr, szData );
+               LetoGetCmdItem( &ptr, szData );
                sscanf( szData, "%d;", &iFError );
                hb_retl( FALSE );
             }
@@ -389,14 +381,14 @@ HB_FUNC( LETO_FILEWRITE )
          char * ptr = leto_firstchar();
          if( *(ptr-1) == '+' )
          {
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             if( szData[0] == 'T' )
             {
                hb_retl( TRUE );
             }
             else
             {
-               leto_getCmdItem( &ptr, szData );
+               LetoGetCmdItem( &ptr, szData );
                sscanf( szData, "%d;", &iFError );
                hb_retl( FALSE );
             }
@@ -430,17 +422,17 @@ HB_FUNC( LETO_FILESIZE )
          char * ptr = leto_firstchar();
          if( *(ptr-1) == '+' )
          {
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             if( szData[0] == 'T' )
             {
-               leto_getCmdItem( &ptr, szData );
+               LetoGetCmdItem( &ptr, szData );
                sscanf( szData, "%lu;", &ulLen );
                hb_retnl( ulLen );
                return;
             }
             else
             {
-               leto_getCmdItem( &ptr, szData );
+               LetoGetCmdItem( &ptr, szData );
                sscanf( szData, "%d;", &iFError );
             }
          }
@@ -473,7 +465,7 @@ HB_FUNC( LETO_DIRECTORY )
          char * ptr = leto_firstchar();
          if( *(ptr-1) == '+' )
          {
-            leto_getCmdItem( &ptr, szData ); ptr ++;
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
             if( szData[0] == 'T' )
             {
                USHORT uiItems;
@@ -481,7 +473,7 @@ HB_FUNC( LETO_DIRECTORY )
                PHB_ITEM pSubarray = hb_itemNew( NULL );
 
                uiItems = 1;
-               while( leto_getCmdItem( &ptr, szData ) )
+               while( LetoGetCmdItem( &ptr, szData ) )
                {
                   ptr ++;
                   if( uiItems == 1 )
@@ -515,7 +507,7 @@ HB_FUNC( LETO_DIRECTORY )
             }
             else
             {
-               leto_getCmdItem( &ptr, szData );
+               LetoGetCmdItem( &ptr, szData );
                sscanf( szData, "%d;", &iFError );
             }
          }
@@ -544,9 +536,9 @@ HB_FUNC( LETO_MAKEDIR )
       {
          char * ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          hb_retni( ( szData[0] == 'T') ? 0 : -1 );
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          sscanf( szData, "%d", &iFError );
       }
    }
@@ -576,7 +568,7 @@ HB_FUNC( LETO_UDFEXIST )
       {
          ptr = leto_firstchar();
 
-         leto_getCmdItem( &ptr, szData ); ptr ++;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
          hb_retl( ( szData[0] == 'T') );
       }
    }
@@ -615,14 +607,6 @@ HB_FUNC( LETO_UDF )
       hb_ret( );
 }
 
-static void leto_SetPath( LETOCONNECTION * pConnection, const char * szPath )
-{
-   if( pConnection->szPath )
-      hb_xfree( pConnection->szPath );
-   pConnection->szPath = (char*) hb_xgrab( strlen( szPath ) + 1 );
-   strcpy( pConnection->szPath, szPath );
-}
-
 HB_FUNC( LETO_CONNECT )
 {
    LETOCONNECTION * pConnection;
@@ -636,14 +620,15 @@ HB_FUNC( LETO_CONNECT )
    szPath[0] = '\0';
    if( HB_ISCHAR(1) && leto_getIpFromPath( hb_parc(1), szAddr, &iPort, szPath, FALSE ) &&
        ( ( ( pConnection = leto_ConnectionFind( szAddr, iPort ) ) != NULL ) ||
-         ( ( pConnection = leto_ConnectionNew( szAddr, iPort, szUser, szPass, iTimeOut ) ) ) != NULL ) )
+         ( leto_SetOptions() &&
+         ( ( pConnection = LetoConnectionNew( szAddr, iPort, szUser, szPass, iTimeOut ) ) ) != NULL ) ) )
    {
       pCurrentConn = pConnection;
       if( HB_ISNUM(5) )
          pConnection->uiBufRefreshTime = hb_parni(5);
 
       if( strlen(szPath) > 1 && pConnection->szPath == NULL )
-         leto_SetPath( pConnection, szPath );
+         LetoSetPath( pConnection, szPath );
       hb_retni( pConnection - leto_getConnectionPool() + 1 );
    }
    else
@@ -689,7 +674,7 @@ HB_FUNC( LETO_GETSERVERVERSION )
 {
    LETOCONNECTION * pConnection = leto_getConnection( 2 );
    if( pConnection )
-      hb_retc( HB_ISNIL( 1 ) ? pConnection->szVersion : pConnection->szVerHarbour );
+      hb_retc( HB_ISNIL( 1 ) ? LetoGetServerVer( pConnection ) : pConnection->szVerHarbour );
    else
       hb_retc( "" );
 }
@@ -702,7 +687,7 @@ HB_FUNC( LETO_PATH )
       hb_retc( pConnection->szPath ? pConnection->szPath : "");
       if( HB_ISCHAR(1) )
       {
-         leto_SetPath( pConnection, hb_parc( 1 ) );
+         LetoSetPath( pConnection, hb_parc( 1 ) );
       }
    }
    else
@@ -711,14 +696,15 @@ HB_FUNC( LETO_PATH )
 
 HB_FUNC( LETO_MGGETINFO )
 {
+   char * ptr;
+
    if( pCurrentConn )
    {
-      if( leto_DataSendRecv( pCurrentConn, "mgmt;00;\r\n", 0 ) )
+      if( ( ptr = LetoMgGetInfo( pCurrentConn ) ) != NULL )
       {
          PHB_ITEM temp;
          PHB_ITEM aInfo;
          char szData[_POSIX_PATH_MAX + 1];
-         char * ptr = leto_firstchar();
          int i;
 
          if( *(ptr-1) == '+' )
@@ -726,7 +712,7 @@ HB_FUNC( LETO_MGGETINFO )
             aInfo = hb_itemArrayNew( 17 );
             for( i=1; i<=17; i++ )
             {
-               if( !leto_getCmdItem( &ptr, szData ) )
+               if( !LetoGetCmdItem( &ptr, szData ) )
                   break;
 
                ptr ++;
@@ -744,23 +730,18 @@ HB_FUNC( LETO_MGGETINFO )
 
 HB_FUNC( LETO_MGGETUSERS )
 {
-   char szData[_POSIX_PATH_MAX + 1];
+   char szData[64], *ptr;
 
    if( pCurrentConn )
    {
-      if( HB_ISNIL(1) )
-         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;01;\r\n" );
-      else
-         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;01;%s;\r\n", hb_parc(1) );
-      if ( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
+      if( ( ptr = LetoMgGetUsers( pCurrentConn, ( (HB_ISNIL(1))? NULL : hb_parc(1) ) ) ) != NULL )
       {
          int iUsers, i, j;
-         char * ptr = leto_firstchar();
          PHB_ITEM pArray, pArrayItm;
 
          if( *(ptr-1) == '+' )
          {
-            if( !leto_getCmdItem( &ptr, szData ) ) return; ptr ++;
+            if( !LetoGetCmdItem( &ptr, szData ) ) return; ptr ++;
             sscanf( szData, "%d", &iUsers );
             pArray = hb_itemArrayNew( iUsers );
             for ( i = 1; i <= iUsers; i++ )
@@ -769,7 +750,7 @@ HB_FUNC( LETO_MGGETUSERS )
                hb_arrayNew( pArrayItm, 5 );
                for( j=1; j<=5; j++ )
                {
-                  if( !leto_getCmdItem( &ptr, szData ) ) return; ptr ++;
+                  if( !LetoGetCmdItem( &ptr, szData ) ) return; ptr ++;
                   hb_itemPutC( hb_arrayGetItemPtr( pArrayItm, j ), szData );
                }
             }
@@ -782,23 +763,18 @@ HB_FUNC( LETO_MGGETUSERS )
 
 HB_FUNC( LETO_MGGETTABLES )
 {
-   char szData[_POSIX_PATH_MAX + 1];
+   char szData[_POSIX_PATH_MAX + 1], * ptr;
 
    if( pCurrentConn )
    {
-      if( HB_ISNIL(1) )
-         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;02;\r\n" );
-      else
-         hb_snprintf( szData, _POSIX_PATH_MAX + 1, "mgmt;02;%s;\r\n", hb_parc(1) );
-      if ( leto_DataSendRecv( pCurrentConn, szData, 0 ) )
+      if( ( ptr = LetoMgGetTables( pCurrentConn, ( (HB_ISNIL(1))? NULL : hb_parc(1) ) ) ) != NULL )
       {
          int iTables, i, j;
-         char * ptr = leto_firstchar();
          PHB_ITEM pArray, pArrayItm;
 
          if( *(ptr-1) == '+' )
          {
-            if( !leto_getCmdItem( &ptr, szData ) ) return; ptr ++;
+            if( !LetoGetCmdItem( &ptr, szData ) ) return; ptr ++;
             sscanf( szData, "%d", &iTables );
             pArray = hb_itemArrayNew( iTables );
             for ( i = 1; i <= iTables; i++ )
@@ -807,7 +783,7 @@ HB_FUNC( LETO_MGGETTABLES )
                hb_arrayNew( pArrayItm, 2 );
                for( j=1; j<=2; j++ )
                {
-                  if( !leto_getCmdItem( &ptr, szData ) ) return; ptr ++;
+                  if( !LetoGetCmdItem( &ptr, szData ) ) return; ptr ++;
                   hb_itemPutC( hb_arrayGetItemPtr( pArrayItm, j ), szData );
                }
             }
@@ -825,23 +801,21 @@ HB_FUNC( LETO_MGKILL )
    if( pCurrentConn )
    {
       if( !HB_ISNIL(1) )
-      {
-         hb_snprintf( szData, 32, "mgmt;09;%s;\r\n", hb_parc(1) );
-         leto_DataSendRecv( pCurrentConn, szData, 0 );
-      }
+         LetoMgKillUser( pCurrentConn, hb_parc(1) );
    }
 }
 
 HB_FUNC( LETO_MGGETTIME )
 {
+   char * ptr;
+
    if( pCurrentConn )
    {
-      if( leto_DataSendRecv( pCurrentConn, "mgmt;03;\r\n", 0 ) )
+      if( ( ptr = LetoMgGetTime( pCurrentConn ) ) != NULL )
       {
          PHB_ITEM temp;
          PHB_ITEM aInfo;
          char szData[32];
-         char * ptr = leto_firstchar();
          int i;
 
          if( *(ptr-1) == '+' )
@@ -849,7 +823,7 @@ HB_FUNC( LETO_MGGETTIME )
             aInfo = hb_itemArrayNew( 2 );
             for( i = 1; i <= 2; i++ )
             {
-               if( !leto_getCmdItem( &ptr, szData ) )
+               if( !LetoGetCmdItem( &ptr, szData ) )
                {
                   hb_itemReturn( aInfo );
                   hb_itemRelease( aInfo );
@@ -886,7 +860,7 @@ HB_FUNC( LETO_SETSKIPBUFFER )
       if( !HB_ISNIL(1) )
       {
          LETOCONNECTION * pConnection = leto_getConnectionPool() + pArea->uiConnection;
-         if( leto_CheckServerVer( pConnection, 206 ) )
+         if( LetoCheckServerVer( pConnection, 206 ) )
          {
             pArea->uiSkipBuf = hb_parni(1);
          }
@@ -1406,7 +1380,7 @@ HB_FUNC( LETO_VARGETLIST )
          ptr = pData = leto_firstchar();
          if( *(ptr-1) == '+' )
          {
-            while( leto_getCmdItem( &ptr, szData ) )
+            while( LetoGetCmdItem( &ptr, szData ) )
             {
                ptr ++;
                uiItems ++;
@@ -1416,7 +1390,7 @@ HB_FUNC( LETO_VARGETLIST )
             aInfo = hb_itemArrayNew( uiItems );
             ptr = pData;
             uiItems = 1;
-            while( leto_getCmdItem( &ptr, szData ) )
+            while( LetoGetCmdItem( &ptr, szData ) )
             {
                ptr ++;
                if( pGroup && uiMaxLen )
@@ -1426,10 +1400,10 @@ HB_FUNC( LETO_VARGETLIST )
 
                   hb_itemPutC( hb_arrayGetItemPtr( aVar, 1 ), szData );
 
-                  if( !leto_getCmdItem( &ptr, szData ) ) return; ptr ++;
+                  if( !LetoGetCmdItem( &ptr, szData ) ) return; ptr ++;
                   cType = *szData;
 
-                  if( !leto_getCmdItem( &ptr, szData ) ) return; ptr ++;
+                  if( !LetoGetCmdItem( &ptr, szData ) ) return; ptr ++;
                   switch( cType )
                   {
                      case '1':
@@ -1493,13 +1467,13 @@ HB_FUNC( LETO_ADDCDPTRANSLATE )
          pCdps = pCurrentConn->pCdpTable;
          while( pCdps->pNext )
            pCdps = pCdps->pNext;
-         pCdps = hb_xgrab( sizeof( CDPSTRU ) );
+         pCdps = malloc( sizeof( CDPSTRU ) );
       }
       else
          pCdps = pCurrentConn->pCdpTable = hb_xgrab( sizeof( CDPSTRU ) );
-      pCdps->szClientCdp = (char*) hb_xgrab( hb_parclen(1) + 1 );
+      pCdps->szClientCdp = (char*) malloc( hb_parclen(1) + 1 );
       strcpy( pCdps->szClientCdp, hb_parc( 1 ) );
-      pCdps->szServerCdp = (char*) hb_xgrab( hb_parclen(2) + 1 );
+      pCdps->szServerCdp = (char*) malloc( hb_parclen(2) + 1 );
       strcpy( pCdps->szServerCdp, hb_parc( 2 ) );
       pCdps->pNext = NULL;
    }

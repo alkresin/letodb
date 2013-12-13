@@ -48,16 +48,22 @@ $(LETO_LIB_DIR)/%.a ::
 
 all: \
    $(LETO_LIB_DIR)/librddleto.a \
+   $(LETO_LIB_DIR)/libleto.a \
    $(LETO_BIN_DIR)/letodb
 
 $(LETO_LIB_DIR)/librddleto.a : \
    $(OBJ_DIR)/leto1.o \
    $(OBJ_DIR)/letomgmn.o \
    $(OBJ_DIR)/hbip.o \
-   $(OBJ_DIR)/net.o \
    $(OBJ_DIR)/common_c.o \
    $(OBJ_DIR)/blowfish.o \
    $(OBJ_DIR)/rddsys.o
+
+$(LETO_LIB_DIR)/libleto.a : \
+   $(OBJ_DIR)/letocl.o \
+   $(OBJ_DIR)/hbip.o \
+   $(OBJ_DIR)/common_c.o \
+   $(OBJ_DIR)/blowfish.o
 
 $(LETO_BIN_DIR)/letodb : \
    $(OBJ_DIR)/server.o \
