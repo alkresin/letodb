@@ -289,20 +289,6 @@ static void leto_SetBlankRecord( LETOAREAP pArea, BOOL bAppend )
    }
 }
 
-static char * leto_DecryptBuf( LETOCONNECTION * pConnection, const char * ptr, ULONG * pulLen )
-{
-   if( *pulLen > pConnection->ulBufCryptLen )
-   {
-      if( !pConnection->ulBufCryptLen )
-         pConnection->pBufCrypt = (char*) malloc( *pulLen );
-      else
-         pConnection->pBufCrypt = (char*) realloc( pConnection->pBufCrypt, *pulLen );
-      pConnection->ulBufCryptLen = *pulLen;
-   }
-   leto_decrypt( ptr, *pulLen, pConnection->pBufCrypt, pulLen, LETO_PASSWORD );
-   return pConnection->pBufCrypt;
-}
-
 //#define ZIP_RECORD
 
 static int leto_ParseRec( LETOAREAP pArea, const char * szData, BOOL bCrypt )
@@ -1897,25 +1883,6 @@ static ERRCODE letoGetRec( LETOAREAP pArea, BYTE ** pBuffer )
       *pBuffer = pArea->pRecord;
    }
    return SUCCESS;
-}
-
-char * leto_DecryptText( LETOCONNECTION * pConnection, ULONG * pulLen )
-{
-   char * ptr = leto_getRcvBuff();
-   USHORT iLenLen = ((int)*ptr++) & 0xFF;
-
-   if( !iLenLen || iLenLen >= 10 )
-      *pulLen = 0;
-   else
-   {
-     *pulLen = leto_b2n( ptr, iLenLen );
-     ptr += iLenLen + 1;
-     if( pConnection->bCrypt )
-     {
-        ptr = leto_DecryptBuf( pConnection, ptr, pulLen );
-     }
-   }
-   return ptr;
 }
 
 static ERRCODE leto_GetMemoValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem, USHORT uiType )

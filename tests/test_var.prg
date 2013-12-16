@@ -6,7 +6,7 @@
 #include "rddleto.ch"
 
 Function Main
-Local cPath := "//127.0.0.1:2812/temp/"
+Local cPath := "//127.0.0.1:2812/"
 Local lRes
 
    REQUEST LETO
@@ -30,7 +30,7 @@ Local lRes
    ENDIF
    ?
 
-   ?  "Adding 'var_int' = 100 to [main] - "
+   ?  "Adding 'var_int' = 100 to [main] (Err (3)) "
    lRes := leto_varSet( "main","var_int",100 )
    IF lRes
       ?? "Ok"
@@ -38,7 +38,7 @@ Local lRes
       ?? "Err (" + Ltrim(Str(leto_ferror())) + ")"
    ENDIF
 
-   ?  "Adding 'var_int' = 100 to [main] - "
+   ?  "Adding 'var_int' = 100 to [main] (Ok) "
    lRes := leto_varSet( "main","var_int",100,LETO_VCREAT )
    IF lRes
       ?? "Ok"
@@ -46,7 +46,7 @@ Local lRes
       ?? "Err (" + Ltrim(Str(leto_ferror())) + ")"
    ENDIF
 
-   ?  "Adding 'var_log' = .T. to [main] - "
+   ?  "Adding 'var_log' = .T. to [main] (Ok) "
    lRes := leto_varSet( "main","var_log",.T.,LETO_VCREAT )
    IF lRes
       ?? "Ok"
@@ -54,8 +54,8 @@ Local lRes
       ?? "Err (" + Ltrim(Str(leto_ferror())) + ")"
    ENDIF
 
-   ?  "Adding 'var_char' = 'Just a small test;' to [main] - "
-   lRes := leto_varSet( "main","var_char","Just a small test;",LETO_VCREAT )
+   ?  "Adding 'var_char' = 'Just a test;' to [main] (Ok) "
+   lRes := leto_varSet( "main","var_char","Just a test;",LETO_VCREAT )
    IF lRes
       ?? "Ok"
    ELSE
@@ -64,18 +64,19 @@ Local lRes
 
    ShowVars()
 
-   ? "var_int =",leto_varGet( "main","var_int" )
-   ? "var_char =",leto_varGet( "main","var_char" )
-   ? "var_log = ",leto_varGet( "main","var_log" )
+   ? "var_int = (100)",leto_varGet( "main","var_int" )
+   ? "var_char = (Just a test;)",leto_varGet( "main","var_char" )
+   ? "var_log = (.T.)",leto_varGet( "main","var_log" )
 
    ? "Press any key to continue..."
    Inkey(0)
+   ?
 
-   ? "Increment var_int, current value is ",leto_varIncr( "main","var_int" )
-   ? "Increment var_int, current value is ",leto_varIncr( "main","var_int" )
-   ? "Decrement var_int, current value is ",leto_varDecr( "main","var_int" )
+   ? "Increment var_int, current value is (100)",leto_varIncr( "main","var_int" )
+   ? "Increment var_int, current value is (101)",leto_varIncr( "main","var_int" )
+   ? "Decrement var_int, current value is (102)",leto_varDecr( "main","var_int" )
 
-   ? "Delete var_log - "
+   ? "Delete var_log (Ok) "
    lRes := leto_varDel( "main","var_log" )
    IF lRes
       ?? "Ok"
@@ -85,7 +86,7 @@ Local lRes
 
    ShowVars()
 
-   ? "Delete var_char - "
+   ? "Delete var_char (Ok) "
    lRes := leto_varDel( "main","var_char" )
    IF lRes
       ?? "Ok"
@@ -95,9 +96,7 @@ Local lRes
 
    ShowVars()
 
-   ? "var_int =",leto_varGet( "main","var_int" )
-
-   ? "Delete var_int - "
+   ? "Delete var_int (Ok) "
    lRes := leto_varDel( "main","var_int" )
    IF lRes
       ?? "Ok"
@@ -115,7 +114,7 @@ Return Nil
 Static Function ShowVars()
 Local i, j, arr, arr1
 
-   ? "Vars list:"
+   ? "--- Vars list ---"
    IF ( arr := leto_varGetlist() ) != Nil
       FOR i := 1 TO Len( arr )
          ? arr[i] + " ("
