@@ -1,4 +1,4 @@
-/*  $Id: rddleto.h,v 1.40.2.19 2013/12/06 15:38:35 alkresin Exp $  */
+/*  $Id: rddleto.h,v 1.40.2.20 2013/12/09 10:07:49 alkresin Exp $  */
 
 /*
  * Harbour Project source code:

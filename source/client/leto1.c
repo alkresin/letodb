@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.166.2.78 2013/12/06 15:38:35 alkresin Exp $  */
+/*  $Id: leto1.c,v 1.166.2.84 2013/12/20 19:21:08 ptsarenko Exp $  */
 
 /*
  * Harbour Project source code:

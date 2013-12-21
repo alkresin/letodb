@@ -61,6 +61,8 @@
    #endif
 #endif
 
+#define HB_MAX_FILE_EXT       10
+
 HB_EXTERN_BEGIN
 
 typedef struct _CDPSTRU
@@ -69,6 +71,20 @@ typedef struct _CDPSTRU
    char *      szServerCdp;
    struct _CDPSTRU * pNext;
 } CDPSTRU, *PCDPSTRU;
+
+typedef struct _LETOTABLE
+{
+   unsigned long hTable;
+   unsigned int  uiDriver;
+
+   unsigned int  uiFieldExtent;
+   char *        szFields;
+
+   char     szMemoExt[HB_MAX_FILE_EXT + 1];    /* MEMO file extension */
+   BYTE     bMemoType;           /* MEMO type used in DBF memo fields */
+   USHORT   uiMemoVersion;       /* MEMO file version */
+
+} LETOTABLE, *PLETOTABLE;
 
 typedef struct _LETOCONNECTION_
 {
@@ -162,3 +178,9 @@ int LetoIsFileExist( LETOCONNECTION * pConnection, char * szFile );
 int LetoFileErase( LETOCONNECTION * pConnection, char * szFile );
 int LetoFileRename( LETOCONNECTION * pConnection, char * szFile, char * szFileNew );
 char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile );
+int LetoMemoWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulLen );
+char * LetoFileRead( LETOCONNECTION * pConnection, char * szFile, unsigned long ulStart, unsigned long * ulLen );
+int LetoFileWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulStart, unsigned long ulLen );
+long int LetoFileSize( LETOCONNECTION * pConnection, char * szFile );
+char * LetoDirectory( LETOCONNECTION * pConnection, char * szDir, char * szAttr );
+int LetoMakeDir( LETOCONNECTION * pConnection, char * szFile );

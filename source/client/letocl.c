@@ -71,7 +71,7 @@
 static char * s_szBuffer = NULL;
 static unsigned long s_lBufferLen = 0;
 static int s_iConnectRes = 1;
-static int iFError = 0;
+static int s_iError = 0;
 
 static char * s_szModName = NULL;
 static char * s_szDateFormat = NULL;
@@ -165,12 +165,12 @@ int LetoGetConnectRes( void )
 
 int LetoGetFError( void )
 {
-   return iFError;
+   return s_iError;
 }
 
 void LetoSetFError( int iErr )
 {
-   iFError = iErr;
+   s_iError = iErr;
 }
 
 char * LetoGetServerVer( LETOCONNECTION * pConnection )
@@ -585,6 +585,23 @@ char * leto_DecryptText( LETOCONNECTION * pConnection, ULONG * pulLen )
    return ptr;
 }
 
+static char * leto_ReadMemoInfo( PLETOTABLE pTable, char * ptr )
+{
+   char szTemp[14];
+
+   if( LetoGetCmdItem( &ptr, szTemp ) )
+   {
+      ptr ++;
+      strcpy( pTable->szMemoExt, szTemp );
+      pTable->bMemoType = ( *ptr - '0' );
+      ptr += 2;
+      LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+      sscanf( szTemp, "%d" , (int*) &pTable->uiMemoVersion );
+   }
+
+   return ptr;
+}
+
 char * leto_NetName( void )
 {
 #if defined(HB_OS_UNIX) || ( defined(HB_OS_OS2) && defined(__GNUC__) )
@@ -673,8 +690,7 @@ LETOCONNECTION * LetoConnectionNew( const char * szAddr, int iPort, const char *
 
       if( leto_RecvFirst( pConnection ) )
       {
-         char * ptr, * pName, **pArgv;
-         char szFile[_POSIX_PATH_MAX + 1];
+         char * ptr, * pName;
          unsigned int uiSizeLen = (pConnection->uiProto==1)? 0 : LETO_MSGSIZE_LEN;
 
          ptr = strchr( s_szBuffer,';' );
@@ -855,6 +871,74 @@ void LetoConnectionClose( LETOCONNECTION * pConnection )
 
 }
 
+PLETOTABLE LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea )
+{
+
+   char szData[_POSIX_PATH_MAX + 16], * ptr, * ptrStart, szTemp[14];
+   PLETOTABLE pTable;
+   unsigned int uiFields, uiCount, uiLen;
+
+   if( LetoCheckServerVer( pConnection, 100 ) )
+      sprintf( szData,"open;%s;%s;%c%c;%s;\r\n", szFile,
+          szAlias, (iShared)? 'T':'F', (iReadOnly)? 'T':'F', szCdp );
+   else
+      sprintf( szData,"open;01;%d;%s;%s;%c%c;%s;\r\n", uiArea, szFile,
+          szAlias, (iShared)? 'T':'F', (iReadOnly)? 'T':'F', szCdp );
+
+   if( !leto_DataSendRecv( pConnection, szData, 0 ) )
+   {
+      s_iError = 1000;
+      return NULL;
+   }
+   ptr = leto_getRcvBuff();
+   if( *ptr == '-' )
+   {
+      if( *(ptr+3) == '4' )
+         s_iError = 103;
+      else
+         s_iError = 1021;
+      return NULL;
+   }
+
+   pTable = (PLETOTABLE) malloc( sizeof(LETOTABLE) );
+   ptr = leto_firstchar();
+
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+   sscanf( szTemp, "%lu" , &(pTable->hTable) );
+   if( *ptr == '1' )
+     pTable->uiDriver = LETO_NTX;
+   ptr ++; ptr++;
+
+   if( LetoCheckServerVer( pConnection, 100 ) )
+   {
+      // Read MEMOEXT, MEMOTYPE, MEMOVERSION
+      ptr = leto_ReadMemoInfo( pTable, ptr );
+      // for DBI_LASTUPDATE
+      if( LetoCheckServerVer( pConnection, 208 ) )
+      {
+         LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+         //pArea->lLastUpdate = hb_dateEncStr( szTemp );
+      }
+   }
+   // Read number of fields
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+   sscanf( szTemp, "%d" , &uiFields );
+   pTable->uiFieldExtent = uiFields;
+   ptrStart = ptr;
+   for( uiCount = 1; uiCount <= uiFields; uiCount++ )
+   {
+      while( *ptr != ';' ) ptr++;
+      while( *ptr != ';' ) ptr++;
+      sscanf( ptr, "%d;" , &uiLen );
+      while( *ptr != ';' ) ptr++;
+      while( *ptr != ';' ) ptr++;
+   }
+   pTable->szFields = (char*) malloc( ptr - ptrStart );
+   memcpy( pTable->szFields, ptrStart, ptr - ptrStart );
+
+   return pTable;
+}
+
 char * LetoMgGetInfo( LETOCONNECTION * pConnection )
 {
    if( leto_DataSendRecv( pConnection, "mgmt;00;\r\n", 0 ) )
@@ -922,9 +1006,9 @@ int LetoVarSet( LETOCONNECTION * pConnection, char * szGroup, char * szVar, char
 {
    unsigned long ul, ulLen = 24 + strlen(szGroup) + strlen(szVar);
    char * pData, * ptr, cFlag1 = ' ', cFlag2 = ' ';
-   unsigned int uiRes = 0;
+   unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
    ptr = szGroup;
    while( *ptr )
       if( *ptr++ == ';' )
@@ -966,31 +1050,39 @@ int LetoVarSet( LETOCONNECTION * pConnection, char * szGroup, char * szVar, char
    *ptr++ = cFlag1;
    *ptr++ = cFlag2;
    *ptr++ = ';'; *ptr++ = '\r'; *ptr++ = '\n';
-   *ptr++ = '\0';
+   *ptr = '\0';
 
-   if( leto_DataSendRecv( pConnection, pData, 0 ) )
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
    {
       ptr = leto_firstchar() - 1;
       uiRes = ( *ptr == '+' );
       ptr++;
    }
-   free( pData );
-   if( uiRes && pRetValue )
+   else
+      return 0;
+
+   if( uiRes )
    {
-      pData = ptr;
-      ptr += 2;
-      while( *ptr != ';' )
+      s_iError = 0;
+      if( pRetValue )
       {
-         if( *ptr == '\1' )
-            *ptr = ';';
-         ptr ++;
+         pData = ptr;
+         ptr += 2;
+         while( *ptr != ';' )
+         {
+            if( *ptr == '\1' )
+               *ptr = ';';
+            ptr ++;
+         }
+         *pRetValue = ( char * ) malloc( ulLen = (ptr - pData) );
+         memcpy( *pRetValue, pData, ulLen );
+         *(*pRetValue + ulLen) = '\0';
       }
-      *pRetValue = ( char * ) malloc( ulLen = (ptr - pData) );
-      memcpy( *pRetValue, pData, ulLen );
-      *(*pRetValue + ulLen) = '\0';
    }
-   else if( !uiRes )
-      sscanf( ptr+1, "%u", &iFError );
+   else
+      sscanf( ptr+1, "%u", &s_iError );
 
    return uiRes;
 }
@@ -999,20 +1091,24 @@ char * LetoVarGet( LETOCONNECTION * pConnection, char * szGroup, char * szVar )
 {
    unsigned long ulLen = 24 + strlen(szGroup) + strlen(szVar);
    char * pData, * ptr;
-   unsigned int uiRes = 0;
+   unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "var;get;%s;%s;\r\n", szGroup, szVar );
 
-   if( leto_DataSendRecv( pConnection, pData, 0 ) )
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
    {
       ptr = leto_firstchar() - 1;
       uiRes = ( *ptr == '+' );
       ptr++;
    }
-   free( pData );
+   else
+      return NULL;
+
    if( uiRes )
    {
       char * szRetValue = ( char * ) malloc( (ulLen = strlen(ptr)) + 1 );
@@ -1026,10 +1122,11 @@ char * LetoVarGet( LETOCONNECTION * pConnection, char * szGroup, char * szVar )
          ptr ++;
       }
       *ptr = '\0';
+      s_iError = 0;
       return szRetValue;
    }
 
-   sscanf( ptr, "%u", &iFError );
+   sscanf( ptr, "%u", &s_iError );
    return NULL;
 
 }
@@ -1039,9 +1136,9 @@ long LetoVarIncr( LETOCONNECTION * pConnection, char * szGroup, char * szVar, un
    unsigned long ulLen = 24 + strlen(szGroup) + strlen(szVar);
    char *pData, *ptr, cFlag1 = ' ';
    long lValue;
-   unsigned int uiRes = 0;
+   unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    cFlag1 |= ( uiFlags & ( LETO_VCREAT | LETO_VOWN | LETO_VDENYWR | LETO_VDENYRD ) );
    if( uiFlags & LETO_VOWN )
@@ -1050,20 +1147,24 @@ long LetoVarIncr( LETOCONNECTION * pConnection, char * szGroup, char * szVar, un
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "var;inc;%s;%s;2%c!;\r\n", szGroup, szVar, cFlag1 );
 
-   if( leto_DataSendRecv( pConnection, pData, 0 ) )
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
    {
       ptr = leto_firstchar() - 1;
       uiRes = ( *ptr == '+' );
       ptr++;
    }
-   free( pData );
+   else
+      return 0;
    if( uiRes )
    {
       sscanf( ptr+2, "%ld", &lValue );
+      s_iError = 0;
       return lValue;
    }
 
-   sscanf( ptr, "%u", &iFError );
+   sscanf( ptr, "%u", &s_iError );
    return 0;
 }
 
@@ -1072,9 +1173,9 @@ long LetoVarDecr( LETOCONNECTION * pConnection, char * szGroup, char * szVar, un
    unsigned long ulLen = 24 + strlen(szGroup) + strlen(szVar);
    char *pData, *ptr, cFlag1 = ' ';
    long lValue;
-   unsigned int uiRes = 0;
+   unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    cFlag1 |= ( uiFlags & ( LETO_VCREAT | LETO_VOWN | LETO_VDENYWR | LETO_VDENYRD ) );
    if( uiFlags & LETO_VOWN )
@@ -1083,20 +1184,24 @@ long LetoVarDecr( LETOCONNECTION * pConnection, char * szGroup, char * szVar, un
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "var;dec;%s;%s;2%c!;\r\n", szGroup, szVar, cFlag1 );
 
-   if( leto_DataSendRecv( pConnection, pData, 0 ) )
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
    {
       ptr = leto_firstchar() - 1;
       uiRes = ( *ptr == '+' );
       ptr++;
    }
-   free( pData );
+   else
+      return 0;
    if( uiRes )
    {
       sscanf( ptr+2, "%ld", &lValue );
+      s_iError = 0;
       return lValue;
    }
 
-   sscanf( ptr, "%u", &iFError );
+   sscanf( ptr, "%u", &s_iError );
    return 0;
 }
 
@@ -1104,26 +1209,31 @@ int LetoVarDel( LETOCONNECTION * pConnection, char * szGroup, char * szVar )
 {
    unsigned long ulLen = 24 + strlen(szGroup) + strlen(szVar);
    char * pData, * ptr;
-   unsigned int uiRes = 0;
+   unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "var;del;%s;%s;\r\n", szGroup, szVar );
 
-   if( leto_DataSendRecv( pConnection, pData, 0 ) )
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
    {
       ptr = leto_firstchar() - 1;
       uiRes = ( *ptr == '+' );
       ptr++;
    }
-   free( pData );
+   else
+      return 0;
+
    if( uiRes )
    {
+      s_iError = 0;
       return 1;
    }
 
-   sscanf( ptr, "%u", &iFError );
+   sscanf( ptr, "%u", &s_iError );
    return 0;
 
 }
@@ -1132,29 +1242,34 @@ char * LetoVarGetList( LETOCONNECTION * pConnection, const char * szGroup, unsig
 {
    unsigned long ulLen = 32 + ( (szGroup)? strlen(szGroup) : 0 );
    char * pData, * ptr;
-   unsigned int uiRes = 0;
+   unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "var;list;%s;;%u;\r\n", (szGroup)? szGroup : "", uiMaxLen );
 
-   if( leto_DataSendRecv( pConnection, pData, 0 ) )
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
    {
       ptr = leto_firstchar() - 1;
       uiRes = ( *ptr == '+' );
       ptr++;
    }
-   free( pData );
+   else
+      return NULL;
+
    if( uiRes )
    {
       char * szRetValue = ( char * ) malloc( (ulLen = strlen(ptr)) + 1 );
       memcpy( szRetValue, ptr, ulLen );
       *(szRetValue + ulLen) = '\0';
+      s_iError = 0;
       return szRetValue;
    }
 
-   sscanf( ptr, "%u", &iFError );
+   sscanf( ptr, "%u", &s_iError );
    return NULL;
 
 }
@@ -1165,7 +1280,7 @@ int LetoIsFileExist( LETOCONNECTION * pConnection, char * szFile )
    char * pData, * ptr;
    unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "file;01;%s;\r\n", szFile );
@@ -1175,11 +1290,13 @@ int LetoIsFileExist( LETOCONNECTION * pConnection, char * szFile )
    if( uiRes )
    {
       ptr = leto_firstchar();
-      if( *(ptr-1) == '+' )
-         return ( (*ptr=='T')? 1 : 0 );
+      if( *(ptr-1) == '+' && *ptr=='T' )
+      {
+         s_iError = 0;
+         return 1;
+      }
    }
 
-   iFError = -1;
    return 0;
 
 }
@@ -1190,7 +1307,7 @@ int LetoFileErase( LETOCONNECTION * pConnection, char * szFile )
    char * pData, * ptr;
    unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "file;02;%s;\r\n", szFile );
@@ -1200,13 +1317,13 @@ int LetoFileErase( LETOCONNECTION * pConnection, char * szFile )
    if( uiRes )
    {
       ptr = leto_firstchar();
-      if( *(ptr-1) == '+' )
-         return ( (*ptr=='T')? 1 : 0 );
-
-      sscanf( ptr+2, "%u", &iFError );
+      if( *(ptr-1) == '+' && (*ptr=='T') )
+      {
+         s_iError = 0;
+         return 1;
+      }
+      sscanf( ptr+2, "%u", &s_iError );
    }
-   else
-      iFError = -1;
 
    return 0;
 
@@ -1218,7 +1335,7 @@ int LetoFileRename( LETOCONNECTION * pConnection, char * szFile, char * szFileNe
    char * pData, * ptr;
    unsigned int uiRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "file;03;%s;%s;\r\n", szFile, szFileNew );
@@ -1228,13 +1345,13 @@ int LetoFileRename( LETOCONNECTION * pConnection, char * szFile, char * szFileNe
    if( uiRes )
    {
       ptr = leto_firstchar();
-      if( *(ptr-1) == '+' )
-         return ( (*ptr=='T')? 1 : 0 );
-
-      sscanf( ptr+2, "%u", &iFError );
+      if( *(ptr-1) == '+' && (*ptr=='T') )
+      {
+         s_iError = 0;
+         return 1;
+      }
+      sscanf( ptr+2, "%u", &s_iError );
    }
-   else
-      iFError = -1;
 
    return 0;
 
@@ -1244,16 +1361,16 @@ char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile )
 {
    unsigned long ulLen = 24 + strlen(szFile);
    char * pData, * ptr;
-   unsigned int uiRes;
+   unsigned long ulRes;
 
-   iFError = 0;
+   s_iError = -1;
 
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "file;04;%s;\r\n", szFile );
 
-   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   ulRes = leto_DataSendRecv( pConnection, pData, 0 );
    free( pData );
-   if( uiRes )
+   if( ulRes )
    {
       ptr = leto_DecryptText( pConnection, &ulLen );
 
@@ -1261,13 +1378,246 @@ char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile )
       {
          pData = ( char * ) malloc( ulLen );
          memcpy( pData, ptr, ulLen - 1 );
+         *( pData+ulLen ) = '\0';
+         s_iError = 0;
+         return pData;
+      }
+   }
+
+   return NULL;
+
+}
+
+int LetoMemoWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulLen )
+{
+   char * pData, * ptr;
+   unsigned long ulRes;
+
+   s_iError = -1;
+
+   pData = ( char * ) malloc( 32 + strlen(szFile) + ulLen );
+   sprintf( pData, "file;13;%s;;;", szFile );
+
+   ulRes = strlen( pData );
+
+   HB_PUT_LE_UINT32( pData+ulRes, ulLen );  ulRes += 4;
+   memcpy( pData+ulRes, szValue, ulLen );
+   ulRes += ulLen;
+
+   pData[ulRes  ] = '\r';
+   pData[ulRes+1] = '\n';
+   pData[ulRes+2] = '0';
+   ulRes += 2;
+
+   ulRes = leto_DataSendRecv( pConnection, pData, ulRes );
+   free( pData );
+   if( ulRes )
+   {
+      ptr = leto_firstchar();
+      if( *(ptr-1) == '+' )
+      {
+         if( *ptr == 'T' )
+         {
+            s_iError = 0;
+            return 1;
+         }
+         else
+         {
+            ptr += 2;
+            sscanf( ptr, "%d;", &s_iError );
+         }
+      }
+   }
+
+   return 0;
+
+}
+
+char * LetoFileRead( LETOCONNECTION * pConnection, char * szFile, unsigned long ulStart, unsigned long * ulLen )
+{
+   char * pData, * ptr;
+   unsigned long ulRes;
+
+   s_iError = 0;
+
+   pData = ( char * ) malloc( 64 + strlen(szFile) );
+   sprintf( pData, "file;10;%s;%lu;%lu;\r\n", szFile, ulStart, *ulLen );
+
+   ulRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if ( ulRes >= 5 )
+   {
+      ptr = leto_firstchar();
+      if( *(ptr-1) == '+' )
+      {
+         if( *ptr == 'T' )
+         {
+            ptr += 2;
+            *ulLen = HB_GET_LE_UINT32( ptr );
+            ptr += 4;
+
+            if( *ulLen < ulRes )
+            {
+               pData = ( char * ) malloc( *ulLen );
+               memcpy( pData, ptr, *ulLen );
+               *( pData+*ulLen ) = '\0';
+               return pData;
+            }
+            else
+               s_iError = -2;
+         }
+         else
+            sscanf( ptr+2, "%d;", &s_iError );
+      }
+   }
+   else
+      s_iError = -1;
+
+   *ulLen = 0;
+   return NULL;
+
+}
+
+int LetoFileWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulStart, unsigned long ulLen )
+{
+   char * pData, * ptr;
+   unsigned long ulRes;
+
+   s_iError = 0;
+
+   pData = ( char * ) malloc( 48 + strlen(szFile) + ulLen );
+   sprintf( pData, "file;14;%s;%lu;%lu;", szFile, ulStart, ulLen );
+
+   ulRes = strlen( pData );
+
+   HB_PUT_LE_UINT32( pData+ulRes, ulLen );  ulRes += 4;
+   memcpy( pData+ulRes, szValue, ulLen );
+   ulRes += ulLen;
+
+   pData[ulRes  ] = '\r';
+   pData[ulRes+1] = '\n';
+   pData[ulRes+2] = '0';
+   ulRes += 2;
+
+   ulRes = leto_DataSendRecv( pConnection, pData, ulRes );
+   free( pData );
+   if( ulRes )
+   {
+      ptr = leto_firstchar();
+      if( *(ptr-1) == '+' )
+      {
+         if( *ptr == 'T' )
+            return 1;
+         else
+         {
+            ptr += 2;
+            sscanf( ptr, "%d;", &s_iError );
+         }
+      }
+      else
+         s_iError = -2;
+   }
+   else
+      s_iError = -1;
+
+   return 0;
+
+}
+
+long int LetoFileSize( LETOCONNECTION * pConnection, char * szFile )
+{
+   unsigned long ulLen = 24 + strlen(szFile);
+   char * pData, * ptr;
+   unsigned long ulRes;
+  
+   s_iError = -1;
+
+   pData = ( char * ) malloc( ulLen );
+   sprintf( pData, "file;11;%s;\r\n", szFile );
+
+   ulRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( ulRes )
+   {
+      ptr = leto_firstchar();
+      if( *(ptr-1) == '+' )
+      {
+         if( *ptr == 'T' )
+         {
+            sscanf( ptr+2, "%lu;", &ulLen );
+            s_iError = 0;
+            return ulLen;
+         }
+         else
+            sscanf( ptr+2, "%d;", &s_iError );
+      }
+   }
+
+   return -1;
+
+}
+
+char * LetoDirectory( LETOCONNECTION * pConnection, char * szDir, char * szAttr )
+{
+   unsigned long ulLen = 48 + strlen(szDir);
+   char * pData, * ptr;
+   unsigned long ulRes;
+
+   pData = ( char * ) malloc( ulLen );
+   sprintf( pData, "file;12;%s;%s;\r\n", szDir, ((szAttr)? szAttr : "") );
+
+   s_iError = -1;
+   ulRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( ulRes )
+   {
+      ptr = leto_firstchar();
+      if( *(ptr-1) == '+' )
+      {
+         ptr += 2;
+         ulLen = strlen( ptr );
+         pData = ( char * ) malloc( ulLen + 1 );
+         memcpy( pData, ptr, ulLen );
+         *( pData+ulLen ) = '\0';
+         s_iError = 0;
          return pData;
       }
       else
+      {
+         sscanf( ptr+2, "%d;", &s_iError );
          return NULL;
+      }
+
    }
 
-   iFError = -1;
    return NULL;
+
+}
+
+int LetoMakeDir( LETOCONNECTION * pConnection, char * szFile )
+{
+   unsigned long ulLen = 24 + strlen(szFile);
+   char * pData, * ptr;
+   unsigned int uiRes;
+
+   s_iError = -1;
+
+   pData = ( char * ) malloc( ulLen );
+   sprintf( pData, "file;05;%s;\r\n", szFile );
+
+   uiRes = leto_DataSendRecv( pConnection, pData, 0 );
+   free( pData );
+   if( uiRes )
+   {
+      ptr = leto_firstchar();
+      if( *(ptr-1) == '+' && *ptr=='T' )
+      {
+         s_iError = 0;
+         return 1;
+      }
+      sscanf( ptr+2, "%u", &s_iError );
+   }
+
+   return 0;
 
 }
