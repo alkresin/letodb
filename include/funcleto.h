@@ -94,6 +94,7 @@
 
 #define LETO_MSGSIZE_LEN      4
 
+/*
 #if !( defined( HB_FT_STRING ) )
 #define HB_FT_STRING          HB_IT_STRING
 #define HB_FT_LOGICAL         HB_IT_LOGICAL
@@ -102,22 +103,24 @@
 #define HB_FT_INTEGER         HB_IT_INTEGER
 #define HB_FT_DOUBLE          HB_IT_DOUBLE
 #define HB_FT_MEMO            HB_IT_MEMO
-#define HB_FT_PICTURE         18    /* "P" */
-#define HB_FT_BLOB            19    /* "W" */
-#define HB_FT_OLE             20    /* "G" */
+#define HB_FT_PICTURE         18
+#define HB_FT_BLOB            19
+#define HB_FT_OLE             20
 #define HB_FT_ANY             HB_IT_ANY
-#define HB_FT_FLOAT           5     /* "F" */
-#define HB_FT_CURRENCY        13    /* "Y" */
+#define HB_FT_FLOAT           5
+#define HB_FT_CURRENCY        13
 #endif
+*/
 #if !( defined( HB_FT_DATETIME ) )
-#define HB_FT_DATETIME        8     /* "T" */
+#define HB_FT_DATETIME        8
 #endif
 #if !( defined( HB_FT_DAYTIME ) )
-#define HB_FT_DAYTIME         9     /* "@" */
-#define HB_FT_MODTIME         10    /* "=" */
+#define HB_FT_DAYTIME         9
+#define HB_FT_MODTIME         10
 #endif
+
 #if !( defined( HB_FT_PICTURE ) )
-#define HB_FT_PICTURE         18    /* "P" */
+#define HB_FT_PICTURE         18
 #endif
 
 #if defined( __XHARBOUR__ )

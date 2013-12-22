@@ -585,7 +585,325 @@ char * leto_DecryptText( LETOCONNECTION * pConnection, ULONG * pulLen )
    return ptr;
 }
 
-static char * leto_ReadMemoInfo( PLETOTABLE pTable, char * ptr )
+static unsigned int leto_IsBinaryField( unsigned int uiType, unsigned int uiLen )
+{
+   return ( ( uiType == HB_FT_MEMO || uiType == HB_FT_BLOB ||
+              uiType == HB_FT_IMAGE || uiType == HB_FT_OLE ) && uiLen == 4 ) ||
+          ( uiType == HB_FT_DATE && uiLen <= 4 ) ||
+          uiType == HB_FT_DATETIME ||
+          uiType == HB_FT_DAYTIME ||
+          uiType == HB_FT_MODTIME ||
+          uiType == HB_FT_ANY ||
+          uiType == HB_FT_INTEGER ||
+          uiType == HB_FT_DOUBLE;
+}
+
+static void leto_SetBlankRecord( LETOTABLE * pTable, unsigned int uiAppend )
+{
+   unsigned int uiCount;
+   LETOFIELD * pField;
+
+   if( uiAppend )
+      pTable->ulRecNo = 0;
+   memset( pTable->pRecord, ' ', pTable->uiRecordLen );
+
+   for( uiCount = 0, pField = pTable->pFields; uiCount < pTable->uiFieldExtent; uiCount++, pField++ )
+      if( leto_IsBinaryField( pField->uiType, pField->uiLen ) )
+         memset(pTable->pRecord + pTable->pFieldOffset[uiCount], 0, pField->uiLen );
+}
+
+static int leto_ParseRec( LETOTABLE * pTable, const char * szData, unsigned int uiCrypt )
+{
+   int iLenLen, iSpace;
+   unsigned int uiCount, uiLen, uiFields;
+   unsigned long ulLen;
+   char * ptr, * ptrRec;
+   char szTemp[24];
+   LETOFIELD * pField;
+   LETOCONNECTION * pConnection = letoConnPool + pTable->uiConnection;
+
+   ulLen = HB_GET_LE_UINT24( szData );
+   ptr = (char *) szData + 3;
+
+   if( uiCrypt && pConnection->bCrypt )
+      ptr = leto_DecryptBuf( pConnection, ptr, &ulLen );
+
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+
+   pTable->fBof = ( (*szTemp) & LETO_FLG_BOF );
+   pTable->fEof = ( (*szTemp) & LETO_FLG_EOF );
+   pTable->fDeleted = ( *(szTemp) & LETO_FLG_DEL );
+   pTable->fFound = ( *(szTemp) & LETO_FLG_FOUND );
+   pTable->fRecLocked = ( *(szTemp) & LETO_FLG_LOCKED );
+   pTable->ulRecNo = atol( szTemp+1 );
+
+   if( pTable->fEof )
+   {
+      leto_SetBlankRecord( pTable, 0 );
+   }
+
+#ifdef ZIP_RECORD
+
+   memcpy( pTable->pRecord, ptr + 1, pTable->uiRecordLen );   // skip delete flag
+
+#else
+
+   pField = pTable->pFields;
+   uiFields = pTable->uiFieldExtent;
+   for( uiCount = 0; uiCount < uiFields; uiCount++ )
+   {
+      ptrRec = (char*) pTable->pRecord + pTable->pFieldOffset[uiCount];
+      iLenLen = ((unsigned char)*ptr) & 0xFF;
+
+      if( pTable->fEof )
+      {
+         ptr ++;
+      }
+      else if( !iLenLen && !leto_IsBinaryField( pField->uiType, pField->uiLen ) )
+      {
+         if( pField->uiType == HB_FT_LOGICAL )
+            *ptrRec = 'F';
+         else
+         {
+            iSpace = pField->uiLen;
+            while( iSpace-- )
+               *ptrRec++ = ' ';
+         }
+         ptr ++;
+         if( pField->uiType == HB_FT_STRING && pField->uiLen > 255 )
+            ptr ++;
+      }
+      else
+         switch( pField->uiType )
+         {
+            case HB_FT_DATE:
+            {
+               if( *ptr == '\0' && pField->uiLen == 8 )
+               {
+                  memset( ptrRec, ' ', 8 );
+                  ptr ++;
+               }
+               else
+               {
+                  memcpy( ptrRec, ptr, pField->uiLen );
+                  ptr += pField->uiLen;
+               }
+               break;
+            }
+            case HB_FT_STRING:
+               ptr ++;
+               if( pField->uiLen > 255 )
+               {
+                  uiLen = leto_b2n( ptr, iLenLen );
+                  ptr += iLenLen;
+                  iLenLen = (int) uiLen;
+               }
+               if( pField->uiLen < (unsigned int)iLenLen )
+               {
+                  s_iError = 1022;
+                  return 0;
+               }
+               if( iLenLen > 0 )
+                  memcpy( ptrRec, ptr, iLenLen );
+               ptrRec += iLenLen;
+               ptr += iLenLen;
+               if( ( iSpace = (pField->uiLen - iLenLen) ) > 0 )
+               {
+                  while( iSpace-- )
+                     *ptrRec++ = ' ';
+               }
+               break;
+
+            case HB_FT_MEMO:
+            case HB_FT_BLOB:
+            case HB_FT_PICTURE:
+            case HB_FT_OLE:
+               *ptrRec = *ptr++;
+               break;
+
+            case HB_FT_LOGICAL:
+               *ptrRec = *ptr++;
+               break;
+
+            case HB_FT_LONG:
+            case HB_FT_FLOAT:
+               if( pField->uiLen < (unsigned int)iLenLen )
+               {
+                  s_iError = 1022;
+                  return 0;
+               }
+               ptr++;
+               if( ( iSpace = (pField->uiLen - iLenLen) ) > 0 )
+               {
+                  while( iSpace-- )
+                     *ptrRec++ = ' ';
+               }
+               memcpy( ptrRec, ptr, iLenLen );
+               ptr += iLenLen;
+               break;
+
+            // binary fields
+            case HB_FT_INTEGER:
+            case HB_FT_CURRENCY:
+            case HB_FT_DOUBLE:
+            case HB_FT_DATETIME:
+            case HB_FT_MODTIME:
+            case HB_FT_DAYTIME:
+               memcpy( ptrRec, ptr, pField->uiLen );
+               ptr += pField->uiLen;
+               break;
+
+            case HB_FT_ANY:
+               if( pField->uiLen == 3 || pField->uiLen == 4 )
+               {
+                  memcpy( ptrRec, ptr, pField->uiLen );
+                  ptr += pField->uiLen;
+               }
+               else
+               {
+                  *ptrRec++ = *ptr;
+                  switch( *ptr++ )
+                  {
+                     case 'D':
+                        memcpy( ptrRec, ptr, 8 );
+                        ptr += 8;
+                        break;
+                     case 'L':
+                        *ptrRec = *ptr++;
+                        break;
+                     case 'N':
+/* todo */
+                        break;
+                     case 'C':
+                     {
+                        uiLen = leto_b2n( ptr, 2 );
+                        memcpy( ptrRec, ptr, uiLen + 2 );
+                        ptr += uiLen + 2;
+                        break;
+                     }
+                  }
+               }
+               break;
+         }
+      pField ++;
+   }
+   if( LetoCheckServerVer( pConnection, 100 ) )
+      if( *ptr == ';' )
+      {
+         pTable->ulRecCount = atol( ptr+1 );
+      }
+
+   if( pConnection->bTransActive )
+   {
+      unsigned long ulIndex, ulAreaID, ulRecNo;
+      char * ptrPar;
+
+      ptr = (char*) pConnection->szTransBuffer + pConnection->uiTBufOffset;
+      for( ulIndex = 0; ulIndex < pConnection->ulRecsInTrans; ulIndex ++ )
+      {
+         if( ( iLenLen = (((int)*ptr) & 0xFF) ) < 10 )
+         {
+            ulLen = leto_b2n( ptr+1, iLenLen );
+            ptr += iLenLen + 1;
+            ptrPar = strchr( ptr, ';' );
+            ++ ptrPar;
+            sscanf( ptrPar, "%lu;", &ulAreaID );
+            if( ulAreaID == pTable->hTable && !strncmp( ptr, "upd;", 4 ) )
+            {
+               ptrPar = strchr( ptrPar, ';' );
+               ++ ptrPar;
+               ulRecNo = atol( ptrPar );
+               if( ulRecNo == pTable->ulRecNo )
+               {
+                  int iUpd, i;
+                  int n255 = ( pTable->uiFieldExtent > 255 ? 2 : 1 );
+                  unsigned int uiField;
+
+                  ptrPar = strchr( ptrPar, ';' );
+                  ++ ptrPar;
+                  iUpd = atol( ptrPar );
+                  ptrPar = strchr( ptrPar, ';' );
+                  ++ ptrPar;
+                  if( *ptrPar == '1' )
+                     pTable->fDeleted = TRUE;
+                  else if( *ptrPar == '2')
+                     pTable->fDeleted = FALSE;
+                  ptrPar = strchr( ptrPar, ';' );
+                  ++ ptrPar;
+
+                  for( i=0; i<iUpd; i++ )
+                  {
+                     uiField = (unsigned int) leto_b2n( ptrPar, n255 ) - 1;
+                     pField = pField = pTable->pFields + uiField;
+                     ptrPar += n255;
+
+                     ptrRec = (char*) pTable->pRecord + pTable->pFieldOffset[uiField];
+
+                     switch( pField->uiType )
+                     {
+                        case HB_FT_STRING:
+                           if( pField->uiLen < 256 )
+                           {
+                              uiLen = ((unsigned char)*ptrPar) & 0xFF;
+                              ptrPar ++;
+                           }
+                           else
+                           {
+                              iLenLen = ((unsigned char)*ptr) & 0xFF;
+                              uiLen = leto_b2n( ptrPar, iLenLen );
+                              ptrPar += iLenLen + 1;
+                           }
+
+                           memcpy( ptrRec, ptrPar, uiLen );
+                           ptrPar += uiLen;
+                           if( uiLen < pField->uiLen )
+                              memset( ptrRec + uiLen, ' ', pField->uiLen - uiLen );
+
+                           break;
+
+                        case HB_FT_LOGICAL:
+                           *ptrRec = *ptrPar++;
+                           break;
+
+                        case HB_FT_LONG:
+                        case HB_FT_FLOAT:
+                           uiLen = ((unsigned char)*ptrPar) & 0xFF;
+                           ptrPar ++;
+
+                           if( ( iSpace = (pField->uiLen - uiLen) ) > 0 )
+                           {
+                              while( iSpace-- )
+                                 *ptrRec++ = ' ';
+                           }
+                           memcpy( ptrRec, ptrPar, uiLen );
+                           ptrPar += uiLen;
+                           break;
+
+                        case HB_FT_INTEGER:
+                        case HB_FT_CURRENCY:
+                        case HB_FT_DOUBLE:
+                        case HB_FT_DATETIME:
+                        case HB_FT_MODTIME:
+                        case HB_FT_DAYTIME:
+                        case HB_FT_DATE:
+                           memcpy( ptrRec, ptrPar, pField->uiLen );
+                           ptrPar += pField->uiLen;
+                     }
+
+                  }
+               }
+            }
+            ptr += ulLen;
+         }
+      }
+   }
+
+#endif
+
+   return 1;
+}
+
+static char * leto_ReadMemoInfo( LETOTABLE * pTable, char * ptr )
 {
    char szTemp[14];
 
@@ -599,6 +917,22 @@ static char * leto_ReadMemoInfo( PLETOTABLE pTable, char * ptr )
       sscanf( szTemp, "%d" , (int*) &pTable->uiMemoVersion );
    }
 
+   return ptr;
+}
+
+static char * leto_SkipTagInfo( LETOCONNECTION * pConnection, char * ptr, unsigned int uiOrders )
+{
+   unsigned int ui;
+
+   if( LetoCheckServerVer( pConnection, 100 ) )
+      uiOrders *= 9;
+   else
+      uiOrders *= 6;
+   for( ui = 0; ui < uiOrders; ui++ )
+   {
+      while( *ptr && *ptr != ';' ) ptr++;
+      ptr++;
+   }
    return ptr;
 }
 
@@ -871,11 +1205,12 @@ void LetoConnectionClose( LETOCONNECTION * pConnection )
 
 }
 
-PLETOTABLE LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea )
+LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea )
 {
 
    char szData[_POSIX_PATH_MAX + 16], * ptr, * ptrStart, szTemp[14];
-   PLETOTABLE pTable;
+   LETOTABLE * pTable;
+   LETOFIELD * pField;
    unsigned int uiFields, uiCount, uiLen;
 
    if( LetoCheckServerVer( pConnection, 100 ) )
@@ -900,7 +1235,9 @@ PLETOTABLE LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAli
       return NULL;
    }
 
-   pTable = (PLETOTABLE) malloc( sizeof(LETOTABLE) );
+   pTable = (LETOTABLE*) malloc( sizeof(LETOTABLE) );
+   pTable->uiConnection = pConnection - letoConnPool;
+
    ptr = leto_firstchar();
 
    LetoGetCmdItem( &ptr, szTemp ); ptr ++;
@@ -924,17 +1261,96 @@ PLETOTABLE LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAli
    LetoGetCmdItem( &ptr, szTemp ); ptr ++;
    sscanf( szTemp, "%d" , &uiFields );
    pTable->uiFieldExtent = uiFields;
-   ptrStart = ptr;
-   for( uiCount = 1; uiCount <= uiFields; uiCount++ )
+
+   pTable->pFields = (LETOFIELD*) malloc( sizeof(LETOFIELD) * uiFields );
+   pTable->uiRecordLen = 0;
+
+   for( uiCount = 0; uiCount < uiFields; uiCount++ )
    {
+      pField = pTable->pFields + uiCount;
+      ptrStart = ptr;
       while( *ptr != ';' ) ptr++;
-      while( *ptr != ';' ) ptr++;
-      sscanf( ptr, "%d;" , &uiLen );
-      while( *ptr != ';' ) ptr++;
-      while( *ptr != ';' ) ptr++;
+      uiLen = ( (uiLen = ptr - ptrStart ) > 10 )? 10 : uiLen;
+      memcpy( pField->szName, ptrStart, uiLen );
+      pField->szName[uiLen] = '\0';
+      ptr++;
+
+      switch( *ptr )
+      {
+         case 'C':
+            pField->uiType = HB_FT_STRING;
+            break;
+         case 'N':
+            pField->uiType = HB_FT_LONG;
+            break;
+         case 'L':
+            pField->uiType = HB_FT_LOGICAL;
+            break;
+         case 'D':
+            pField->uiType = HB_FT_DATE;
+            break;
+         case 'M':
+            pField->uiType = HB_FT_MEMO;
+            break;
+         case 'W':
+            pField->uiType = HB_FT_BLOB;
+            break;
+         case 'P':
+            pField->uiType = HB_FT_IMAGE;
+            break;
+         case 'G':
+            pField->uiType = HB_FT_OLE;
+            break;
+         case 'V':
+            pField->uiType = HB_FT_ANY;
+            break;
+         case 'I':
+         case '2':
+         case '4':
+            pField->uiType = HB_FT_INTEGER;
+            break;
+         case 'F':
+            pField->uiType = HB_FT_FLOAT;
+            break;
+         case 'Y':
+            pField->uiType = HB_FT_CURRENCY;
+            break;
+         case '8':
+         case 'B':
+            pField->uiType = HB_FT_DOUBLE;
+            break;
+         case '@':
+            pField->uiType = HB_FT_MODTIME;
+            break;
+         case 'T':
+            pField->uiType = HB_FT_TIMESTAMP;
+            break;
+      }
+
+      while( *ptr != ';' ) ptr++; ptr++;
+      pField->uiLen = atoi( ptr );
+      pTable->uiRecordLen += pField->uiLen;
+      while( *ptr != ';' ) ptr++; ptr++;
+      pField->uiDec = atoi( ptr );
+      while( *ptr != ';' ) ptr++; ptr++;
    }
-   pTable->szFields = (char*) malloc( ptr - ptrStart );
-   memcpy( pTable->szFields, ptrStart, ptr - ptrStart );
+
+   pTable->pRecord = ( unsigned char * ) malloc( pTable->uiRecordLen+1 );
+
+   pTable->pFieldOffset = ( unsigned int * ) malloc( uiFields * sizeof( unsigned int ) );
+   memset( pTable->pFieldOffset, 0, uiFields * sizeof( unsigned int ) );
+   pTable->pFieldUpd = ( unsigned int * ) malloc( uiFields * sizeof( unsigned int ) );
+   memset( pTable->pFieldUpd, 0, uiFields * sizeof( unsigned int ) );
+
+   pTable->uiOrders = atoi( ptr );
+   while( *ptr != ';' ) ptr++; ptr++;
+
+   ptrStart = ptr;
+   ptr = leto_SkipTagInfo( pConnection, ptr, pTable->uiOrders );
+   pTable->szTags = (char*) malloc( ptr - ptrStart );
+   memcpy( pTable->szTags, ptrStart, ptr - ptrStart );
+
+   leto_ParseRec( pTable, ptr, 1 );
 
    return pTable;
 }

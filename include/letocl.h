@@ -63,6 +63,41 @@
 
 #define HB_MAX_FILE_EXT       10
 
+/* Field types from hbapirdd.h */
+
+#define HB_FT_NONE            0
+#define HB_FT_STRING          1     /* "C" */
+#define HB_FT_LOGICAL         2     /* "L" */
+#define HB_FT_DATE            3     /* "D" */
+#define HB_FT_LONG            4     /* "N" */
+#define HB_FT_FLOAT           5     /* "F" */
+#define HB_FT_INTEGER         6     /* "I" */
+#define HB_FT_DOUBLE          7     /* "B" */
+#define HB_FT_TIME            8     /* "T" */
+#if !( defined( HB_FT_DATETIME ) )
+#define HB_FT_DATETIME        8
+#endif
+#define HB_FT_TIMESTAMP       9     /* "@" */
+#if !( defined( HB_FT_DAYTIME ) )
+#define HB_FT_DAYTIME         9
+#endif
+#if !( defined( HB_FT_MODTIME ) )
+#define HB_FT_MODTIME         10    /* "=" */
+#endif
+#define HB_FT_ROWVER          11    /* "^" */
+#define HB_FT_AUTOINC         12    /* "+" */
+#define HB_FT_CURRENCY        13    /* "Y" */
+#define HB_FT_CURDOUBLE       14    /* "Z" */
+#define HB_FT_VARLENGTH       15    /* "Q" */
+#define HB_FT_MEMO            16    /* "M" */
+#define HB_FT_ANY             17    /* "V" */
+#define HB_FT_IMAGE           18    /* "P" */
+#if !( defined( HB_FT_PICTURE ) )
+   #define HB_FT_PICTURE         18
+#endif
+#define HB_FT_BLOB            19    /* "W" */
+#define HB_FT_OLE             20    /* "G" */
+
 HB_EXTERN_BEGIN
 
 typedef struct _CDPSTRU
@@ -72,19 +107,44 @@ typedef struct _CDPSTRU
    struct _CDPSTRU * pNext;
 } CDPSTRU, *PCDPSTRU;
 
+typedef struct _LETOFIELD
+{
+   char       szName[12];
+   unsigned int  uiType;
+   unsigned int  uiLen;
+   unsigned int  uiDec;
+} LETOFIELD;
+
 typedef struct _LETOTABLE
 {
    unsigned long hTable;
    unsigned int  uiDriver;
+   unsigned int  uiConnection;
 
    unsigned int  uiFieldExtent;
-   char *        szFields;
+   LETOFIELD *   pFields;
+   unsigned int * pFieldUpd;           /* Pointer to updated fields array */
+   unsigned int * pFieldOffset;        /* Pointer to field offset array */
+
+   unsigned int  uiOrders;
+   char *        szTags;
 
    char     szMemoExt[HB_MAX_FILE_EXT + 1];    /* MEMO file extension */
-   BYTE     bMemoType;           /* MEMO type used in DBF memo fields */
-   USHORT   uiMemoVersion;       /* MEMO file version */
+   unsigned char bMemoType;           /* MEMO type used in DBF memo fields */
+   unsigned int  uiMemoVersion;       /* MEMO file version */
 
-} LETOTABLE, *PLETOTABLE;
+   unsigned int  fBof;                /* HB_TRUE if "bof" */
+   unsigned int  fEof;                /* HB_TRUE if "eof" */
+   unsigned int  fFound;              /* HB_TRUE if "found" */
+   unsigned int  fDeleted;            /* Deleted record */
+   unsigned int  fRecLocked;          /* TRUE if record is locked */
+
+   unsigned int  uiRecordLen;         /* Size of record */
+   unsigned long ulRecNo;
+   unsigned long ulRecCount;          /* Count of records */
+   unsigned char * pRecord;           /* Buffer of record data */
+
+} LETOTABLE;
 
 typedef struct _LETOCONNECTION_
 {
