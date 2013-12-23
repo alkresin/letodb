@@ -4,13 +4,17 @@
  * Just change the cPath value to that one you need.
  */
 
-Function Main
-Local cPath := "//127.0.0.1:2812/temp/"
+Function Main( cPath )
 Field NORD, DORD, NPROD, SUMMA
 
    REQUEST LETO
    RDDSETDEFAULT( "LETO" )
 
+   IF Empty( cPath )
+      cPath := "//127.0.0.1:2812/temp/"
+   ELSE
+      cPath := "//" + cPath + Iif( Right(cPath,1) $ "/\", "", "/" )
+   ENDIF
    ? "Start"
    dbCreate( cPath+"nakl1", { {"NORD","N",10,0},{"DORD","D",8,0},{"SUMMA","N",12,2},{"NORM","M",10,0} } )
    dbCreate( cPath+"nakl2", { {"NORD","N",10,0},{"DORD","D",8,0},{"NPROD","N",3,0},{"SUMMA","N",12,2},{"NORM","M",10,0} } )

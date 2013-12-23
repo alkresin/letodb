@@ -598,7 +598,7 @@ HB_FUNC( LETO_SETSKIPBUFFER )
    {
       if( !HB_ISNIL(1) )
       {
-         LETOCONNECTION * pConnection = leto_getConnectionPool() + pArea->uiConnection;
+         LETOCONNECTION * pConnection = leto_getConnectionPool() + pArea->pTable->uiConnection;
          if( LetoCheckServerVer( pConnection, 206 ) )
          {
             pArea->uiSkipBuf = hb_parni(1);
@@ -606,7 +606,7 @@ HB_FUNC( LETO_SETSKIPBUFFER )
          else
          {
             char szData[32];
-            hb_snprintf( szData, 32, "set;02;%lu;%d;\r\n", pArea->hTable, hb_parni(1) );
+            hb_snprintf( szData, 32, "set;02;%lu;%d;\r\n", pArea->pTable->hTable, hb_parni(1) );
             leto_DataSendRecv( pConnection, szData, 0 );
          }
       }

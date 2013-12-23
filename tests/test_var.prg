@@ -1,16 +1,21 @@
-/* $Id: test_var.prg,v 1.2 2010/06/01 09:07:37 alkresin Exp $ */
+/* $Id: test_var.prg,v 1.2.2.1 2013/12/19 10:56:09 alkresin Exp $ */
 /*
  * This sample demonstrates how to use set/get variables functions with Leto db server
  */
 
 #include "rddleto.ch"
 
-Function Main
-Local cPath := "//127.0.0.1:2812/"
+Function Main( cPath )
 Local lRes
 
    REQUEST LETO
    RDDSETDEFAULT( "LETO" )
+
+   IF Empty( cPath )
+      cPath := "//127.0.0.1:2812/"
+   ELSE
+      cPath := "//" + cPath + Iif( Right(cPath,1) $ "/\", "", "/" )
+   ENDIF
 
    ? "Connect to " + cPath + " - "
    IF ( leto_Connect( cPath ) ) == -1

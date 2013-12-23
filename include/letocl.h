@@ -159,18 +159,18 @@ typedef struct _LETOCONNECTION_
    char        szVerHarbour[80];
    char        szAccess[8];
    char        cDopcode[2];
-   HB_BOOL        bCrypt;
-   HB_BOOL        bCloseAll;
+   HB_BOOL     bCrypt;
+   HB_BOOL     bCloseAll;
    PCDPSTRU    pCdpTable;
 
-   HB_BOOL        bTransActive;
+   HB_BOOL     bTransActive;
    BYTE *      szTransBuffer;
    ULONG       ulTransBuffLen;
    ULONG       ulTransDataLen;
    ULONG       ulRecsInTrans;
    ULONG       ulTransBlockLen;
 
-   HB_BOOL        bRefreshCount;
+   HB_BOOL     bRefreshCount;
 
    char *      pBufCrypt;
    ULONG       ulBufCryptLen;
@@ -206,9 +206,12 @@ void LetoConnectionClose( LETOCONNECTION * pConnection );
 char * LetoGetServerVer( LETOCONNECTION * pConnection );
 void LetoSetPath( LETOCONNECTION * pConnection, const char * szPath );
 
+int LetoDbClose( LETOTABLE * pTable );
+LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea );
+
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );
-long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, ULONG ulLen );
+long int leto_DataSendRecv( LETOCONNECTION * pConnection, const char * sData, unsigned long ulLen );
 LETOCONNECTION * leto_getConnectionPool( void );
 LETOCONNECTION * leto_ConnectionFind( const char * szAddr, int iPort );
 const char * leto_GetServerCdp( LETOCONNECTION * pConnection, const char *szCdp );
@@ -244,3 +247,6 @@ int LetoFileWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, 
 long int LetoFileSize( LETOCONNECTION * pConnection, char * szFile );
 char * LetoDirectory( LETOCONNECTION * pConnection, char * szDir, char * szAttr );
 int LetoMakeDir( LETOCONNECTION * pConnection, char * szFile );
+
+unsigned int leto_IsBinaryField( unsigned int uiType, unsigned int uiLen );
+void leto_SetBlankRecord( LETOTABLE * pTable, unsigned int uiAppend );
