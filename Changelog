@@ -6,6 +6,9 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2013-12-24 16:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * Open/Create/Close dbf implemented via the C Client
+
 2013-12-07 09:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
   * Some cleanup before dividing client part to C and Harbour.
 

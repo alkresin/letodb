@@ -207,7 +207,10 @@ char * LetoGetServerVer( LETOCONNECTION * pConnection );
 void LetoSetPath( LETOCONNECTION * pConnection, const char * szPath );
 
 int LetoDbClose( LETOTABLE * pTable );
+LETOTABLE * LetoDbCreate( LETOCONNECTION * pConnection, char * szFile, char * szAlias, char * szFields, unsigned int uiArea );
 LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea );
+unsigned int LetoDbBof( LETOTABLE * pTable );
+unsigned int LetoDbEof( LETOTABLE * pTable );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );
@@ -228,8 +231,8 @@ char * LetoMgGetTables( LETOCONNECTION * pConnection, const char * szUser );
 void LetoMgKillUser( LETOCONNECTION * pConnection, const char * szUserId );
 char * LetoMgGetTime( LETOCONNECTION * pConnection );
 
-int LetoGetFError( void );
-void LetoSetFError( int iErr );
+int LetoGetError( void );
+void LetoSetError( int iErr );
 int LetoVarSet( LETOCONNECTION * pConnection, char * szGroup, char * szVar, char cType, char * szValue, unsigned int uiFlags, char ** pRetValue );
 char * LetoVarGet( LETOCONNECTION * pConnection, char * szGroup, char * szVar );
 long LetoVarIncr( LETOCONNECTION * pConnection, char * szGroup, char * szVar, unsigned int uiFlags );
@@ -240,7 +243,7 @@ char * LetoVarGetList( LETOCONNECTION * pConnection, const char * szGroup, unsig
 int LetoIsFileExist( LETOCONNECTION * pConnection, char * szFile );
 int LetoFileErase( LETOCONNECTION * pConnection, char * szFile );
 int LetoFileRename( LETOCONNECTION * pConnection, char * szFile, char * szFileNew );
-char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile );
+char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile, unsigned long * ulMemoLen );
 int LetoMemoWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulLen );
 char * LetoFileRead( LETOCONNECTION * pConnection, char * szFile, unsigned long ulStart, unsigned long * ulLen );
 int LetoFileWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulStart, unsigned long ulLen );
@@ -250,3 +253,5 @@ int LetoMakeDir( LETOCONNECTION * pConnection, char * szFile );
 
 unsigned int leto_IsBinaryField( unsigned int uiType, unsigned int uiLen );
 void leto_SetBlankRecord( LETOTABLE * pTable, unsigned int uiAppend );
+int leto_ParseRecord( LETOTABLE * pTable, const char * szData, unsigned int uiCrypt );
+

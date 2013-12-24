@@ -163,12 +163,12 @@ int LetoGetConnectRes( void )
    return s_iConnectRes;
 }
 
-int LetoGetFError( void )
+int LetoGetError( void )
 {
    return s_iError;
 }
 
-void LetoSetFError( int iErr )
+void LetoSetError( int iErr )
 {
    s_iError = iErr;
 }
@@ -628,7 +628,9 @@ void leto_SetBlankRecord( LETOTABLE * pTable, unsigned int uiAppend )
          memset(pTable->pRecord + pTable->pFieldOffset[uiCount], 0, pField->uiLen );
 }
 
-static int leto_ParseRec( LETOTABLE * pTable, const char * szData, unsigned int uiCrypt )
+//#define ZIP_RECORD
+
+int leto_ParseRecord( LETOTABLE * pTable, const char * szData, unsigned int uiCrypt )
 {
    int iLenLen, iSpace;
    unsigned int uiCount, uiLen, uiFields;
@@ -1221,70 +1223,12 @@ void LetoConnectionClose( LETOCONNECTION * pConnection )
 
 }
 
-LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea )
+static char * leto_AddFields( LETOTABLE * pTable, unsigned int uiFields, char * szFields )
 {
-
-   char szData[_POSIX_PATH_MAX + 16], * ptr, * ptrStart, szTemp[14];
-   LETOTABLE * pTable;
+   unsigned int uiCount, uiLen;
+   char * ptrStart, * ptr = szFields;
    LETOFIELD * pField;
-   unsigned int uiFields, uiCount, uiLen;
 
-   if( szFile[0] != '+' && szFile[0] != '-' )
-   {
-      if( LetoCheckServerVer( pConnection, 100 ) )
-         sprintf( szData,"open;%s;%s;%c%c;%s;\r\n", szFile,
-             szAlias, (iShared)? 'T':'F', (iReadOnly)? 'T':'F', szCdp );
-      else
-         sprintf( szData,"open;01;%d;%s;%s;%c%c;%s;\r\n", uiArea, szFile,
-             szAlias, (iShared)? 'T':'F', (iReadOnly)? 'T':'F', szCdp );
-
-      if( !leto_DataSendRecv( pConnection, szData, 0 ) )
-      {
-         s_iError = 1000;
-         return NULL;
-      }
-      ptr = leto_getRcvBuff();
-      if( *ptr == '-' )
-      {
-         if( *(ptr+3) == '4' )
-            s_iError = 103;
-         else
-            s_iError = 1021;
-         return NULL;
-      }
-
-      pTable = (LETOTABLE*) malloc( sizeof(LETOTABLE) );
-      pTable->uiConnection = pConnection - letoConnPool;
-
-      ptr = leto_firstchar();
-   }
-   else
-   {
-      if( ( ptr = strchr( szFile + 1, ';' ) ) == NULL )
-         return NULL;
-      ptr ++;
-   }
-
-   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
-   sscanf( szTemp, "%lu" , &(pTable->hTable) );
-   if( *ptr == '1' )
-     pTable->uiDriver = LETO_NTX;
-   ptr ++; ptr++;
-
-   if( LetoCheckServerVer( pConnection, 100 ) )
-   {
-      // Read MEMOEXT, MEMOTYPE, MEMOVERSION
-      ptr = leto_ReadMemoInfo( pTable, ptr );
-      // for DBI_LASTUPDATE
-      if( LetoCheckServerVer( pConnection, 208 ) )
-      {
-         LetoGetCmdItem( &ptr, szTemp ); ptr ++;
-         //pArea->lLastUpdate = hb_dateEncStr( szTemp );
-      }
-   }
-   // Read number of fields
-   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
-   sscanf( szTemp, "%d" , &uiFields );
    pTable->uiFieldExtent = uiFields;
 
    pTable->pFieldOffset = ( unsigned int * ) malloc( uiFields * sizeof( unsigned int ) );
@@ -1365,30 +1309,173 @@ LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAl
       pField->uiDec = atoi( ptr );
       while( *ptr != ';' ) ptr++; ptr++;
    }
+   return ptr;
+}
+
+LETOTABLE * LetoDbCreate( LETOCONNECTION * pConnection, char * szFile, char * szAlias, char * szFields, unsigned int uiArea )
+{
+   LETOTABLE * pTable;
+   char * szData, * ptr = szFields, szTemp[14];
+   unsigned int ui, uiFields = 0;
+
+   while( *ptr )
+   {
+      for( ui=0; ui<4; ui++ )
+      {
+         while( *ptr && *ptr++ != ';' );
+         if( !(*ptr) && ( *(ptr-1) != ';' || ui < 3 ) )
+         {
+            s_iError = 1;
+            return NULL;
+         }
+      }
+      uiFields ++;
+   }
+
+   szData = (char *) malloc( (unsigned int) uiFields * 24 + 10 + _POSIX_PATH_MAX );
+
+   if( LetoCheckServerVer( pConnection, 100 ) )
+      sprintf( szData,"creat;%s;%s;%d;%s\r\n", szFile, szAlias, uiFields, szFields );
+   else
+      sprintf( szData,"creat;01;%d;%s;%s;%d;%s\r\n", uiArea, szFile, szAlias, uiFields, szFields );
+
+   if( !leto_DataSendRecv( pConnection, szData, 0 ) )
+   {
+      s_iError = 1000;
+      free( szData );
+      return NULL;
+   }
+   free( szData );
+
+   ptr = leto_getRcvBuff();
+   if( *ptr == '-' )
+   {
+      if( ptr[4] == ':' )
+         sscanf( ptr+5, "%u-%u-", &ui, &s_iError );
+      else
+         s_iError = 1021;
+      return NULL;
+   }
+
+   pTable = (LETOTABLE*) malloc( sizeof(LETOTABLE) );
+   memset( pTable, 0, sizeof( LETOTABLE ) );
+   pTable->uiConnection = pConnection - letoConnPool;
+
+   leto_AddFields( pTable, uiFields, szFields );
 
    pTable->pRecord = ( unsigned char * ) malloc( pTable->uiRecordLen+1 );
 
+   ptr = leto_firstchar();
+
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+   sscanf( szTemp, "%lu" , &(pTable->hTable) );
+   if( *ptr == '1' )
+     pTable->uiDriver = LETO_NTX;
+   ptr ++; ptr++;
+
+   leto_ParseRecord( pTable, ptr, 1 );
+
+   /*
+   if( LetoCheckServerVer( pConnection, 100 ) )
+   {
+      ptr += HB_GET_LE_UINT24( ptr ) + 3;
+      leto_ReadMemoInfo( pTable, ptr );
+   }
+   */
+   return pTable;
+}
+
+LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea )
+{
+
+   char szData[_POSIX_PATH_MAX + 16], * ptr, * ptrStart, szTemp[14];
+   LETOTABLE * pTable;
+   unsigned int uiFields;
+
+   if( szFile[0] != '+' && szFile[0] != '-' )
+   {
+      if( LetoCheckServerVer( pConnection, 100 ) )
+         sprintf( szData,"open;%s;%s;%c%c;%s;\r\n", szFile,
+             szAlias, (iShared)? 'T':'F', (iReadOnly)? 'T':'F', szCdp );
+      else
+         sprintf( szData,"open;01;%d;%s;%s;%c%c;%s;\r\n", uiArea, szFile,
+             szAlias, (iShared)? 'T':'F', (iReadOnly)? 'T':'F', szCdp );
+
+      if( !leto_DataSendRecv( pConnection, szData, 0 ) )
+      {
+         s_iError = 1000;
+         return NULL;
+      }
+      ptr = leto_getRcvBuff();
+      if( *ptr == '-' )
+      {
+         if( *(ptr+3) == '4' )
+            s_iError = 103;
+         else
+            s_iError = 1021;
+         return NULL;
+      }
+
+      pTable = (LETOTABLE*) malloc( sizeof(LETOTABLE) );
+      memset( pTable, 0, sizeof( LETOTABLE ) );
+      pTable->uiConnection = pConnection - letoConnPool;
+
+      ptr = leto_firstchar();
+   }
+   else
+   {
+      if( ( ptr = strchr( szFile + 1, ';' ) ) == NULL )
+         return NULL;
+      ptr ++;
+   }
+
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+   sscanf( szTemp, "%lu" , &(pTable->hTable) );
+   if( *ptr == '1' )
+     pTable->uiDriver = LETO_NTX;
+   ptr ++; ptr++;
+
+   if( LetoCheckServerVer( pConnection, 100 ) )
+   {
+      // Read MEMOEXT, MEMOTYPE, MEMOVERSION
+      ptr = leto_ReadMemoInfo( pTable, ptr );
+      // for DBI_LASTUPDATE
+      if( LetoCheckServerVer( pConnection, 208 ) )
+      {
+         LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+         //pArea->lLastUpdate = hb_dateEncStr( szTemp );
+      }
+   }
+   // Read number of fields
+   LetoGetCmdItem( &ptr, szTemp ); ptr ++;
+   sscanf( szTemp, "%d" , &uiFields );
+   ptr = leto_AddFields( pTable, uiFields, ptr );
+
+   pTable->pRecord = ( unsigned char * ) malloc( pTable->uiRecordLen+1 );
+
+   ptrStart = ptr;
    pTable->uiOrders = atoi( ptr );
    while( *ptr != ';' ) ptr++; ptr++;
 
-   ptrStart = ptr;
    ptr = leto_SkipTagInfo( pConnection, ptr, pTable->uiOrders );
    pTable->szTags = (char*) malloc( ptr - ptrStart );
    memcpy( pTable->szTags, ptrStart, ptr - ptrStart );
 
-   leto_ParseRec( pTable, ptr, 1 );
+   leto_ParseRecord( pTable, ptr, 1 );
 
    return pTable;
 }
 
 int LetoDbClose( LETOTABLE * pTable )
 {
-   char szData[32];
-   LETOCONNECTION * pConnection = letoConnPool + pTable->uiConnection;
-
+   LETOCONNECTION * pConnection;
    //if( pArea->uiUpdated )
    //   leto_PutRec( pArea, FALSE );
 
+   if( !pTable )
+      return 1;
+
+   pConnection = letoConnPool + pTable->uiConnection;
    if( pConnection->bTransActive )
    {
       s_iError = 1031;
@@ -1397,6 +1484,8 @@ int LetoDbClose( LETOTABLE * pTable )
 
    if( pTable->hTable )
    {
+      char szData[32];  
+
       if( !pConnection->bCloseAll )
       {
          if( LetoCheckServerVer( pConnection, 100 ) )
@@ -1434,7 +1523,6 @@ int LetoDbClose( LETOTABLE * pTable )
       free( pTable->szTags );
       pTable->szTags = NULL;
    }
-
    /*
    if( pArea->Buffer.pBuffer )
    {
@@ -1466,7 +1554,18 @@ int LetoDbClose( LETOTABLE * pTable )
    }
    */
 
+   free( pTable );
    return 1;
+}
+
+unsigned int LetoDbBof( LETOTABLE * pTable )
+{
+   return pTable->fBof;
+}
+
+unsigned int LetoDbEof( LETOTABLE * pTable )
+{
+   return pTable->fEof;
 }
 
 char * LetoMgGetInfo( LETOCONNECTION * pConnection )
@@ -1887,7 +1986,7 @@ int LetoFileRename( LETOCONNECTION * pConnection, char * szFile, char * szFileNe
 
 }
 
-char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile )
+char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile, unsigned long * ulMemoLen )
 {
    unsigned long ulLen = 24 + strlen(szFile);
    char * pData, * ptr;
@@ -1898,6 +1997,7 @@ char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile )
    pData = ( char * ) malloc( ulLen );
    sprintf( pData, "file;04;%s;\r\n", szFile );
 
+   *ulMemoLen = 0;
    ulRes = leto_DataSendRecv( pConnection, pData, 0 );
    free( pData );
    if( ulRes )
@@ -1910,6 +2010,7 @@ char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile )
          memcpy( pData, ptr, ulLen - 1 );
          *( pData+ulLen ) = '\0';
          s_iError = 0;
+         *ulMemoLen = ulLen - 1;
          return pData;
       }
    }

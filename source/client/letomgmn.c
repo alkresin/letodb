@@ -123,7 +123,7 @@ static LETOCONNECTION * letoParseFile( const char *szSource, char *szFile)
 
 HB_FUNC( LETO_FERROR )
 {
-   hb_retni( LetoGetFError() );
+   hb_retni( LetoGetError() );
 }
 
 LETOCONNECTION * letoParseParam( const char * szParam, char * szFile )
@@ -147,7 +147,7 @@ HB_FUNC( LETO_FILE )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
       hb_retl( LetoIsFileExist( pConnection, szFile ) );
    else
@@ -159,7 +159,7 @@ HB_FUNC( LETO_FERASE )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
 
@@ -177,7 +177,7 @@ HB_FUNC( LETO_FRENAME )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && HB_ISCHAR(2) && (pConnection = letoParseParam( hb_parc(1), szFile) ) != NULL )
    {
       if( LetoFileRename( pConnection, szFile, (char *)leto_RemoveIpFromPath( hb_parc(2) ) ) )
@@ -194,13 +194,14 @@ HB_FUNC( LETO_MEMOREAD )
 {
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1], * ptr;
+   unsigned long ulMemoLen;
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
-      if( ( ptr = LetoMemoRead( pConnection, szFile ) ) != NULL )
+      if( ( ptr = LetoMemoRead( pConnection, szFile, &ulMemoLen ) ) != NULL )
       {
-         hb_retc( ptr );
+         hb_retclen( ptr, ulMemoLen );
          free( ptr );
       }
       else
@@ -217,7 +218,7 @@ HB_FUNC( LETO_FILEREAD )
    char szFile[_POSIX_PATH_MAX + 1], *ptr;
    unsigned long ulLen = hb_parnl(3);
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ulLen > 0 && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       if( ( ptr = LetoFileRead( pConnection, szFile, hb_parnl(2), &ulLen ) ) != NULL )
@@ -236,7 +237,7 @@ HB_FUNC( LETO_MEMOWRITE )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && HB_ISCHAR(2) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
       hb_retl( LetoMemoWrite( pConnection, szFile, (char*)hb_parc(2), hb_parclen(2) ) );
    else
@@ -250,7 +251,7 @@ HB_FUNC( LETO_FILEWRITE )
    char szFile[_POSIX_PATH_MAX + 1];
    unsigned long ulBufLen = hb_parclen(3);
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && HB_ISCHAR(3) && ulBufLen > 0 && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
       hb_retl( LetoFileWrite( pConnection, szFile, (char*)hb_parc(3), hb_parnl(2), ulBufLen ) );
    else
@@ -263,7 +264,7 @@ HB_FUNC( LETO_FILESIZE )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       hb_retnl( LetoFileSize( pConnection, szFile ) );
@@ -280,10 +281,10 @@ HB_FUNC( LETO_DIRECTORY )
    char szFile[_POSIX_PATH_MAX + 1], * ptr, *pData ;
    PHB_ITEM aInfo;
 
-   LetoSetFError( -1 );
+   LetoSetError( -1 );
    aInfo = hb_itemArrayNew( 0 );
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       if( ( pData = ptr = LetoDirectory( pConnection, szFile, (char*)((HB_ISCHAR(1))? hb_parc(1) : NULL) ) )  != NULL )
@@ -334,7 +335,7 @@ HB_FUNC( LETO_MAKEDIR )
    LETOCONNECTION * pConnection;
    char szFile[_POSIX_PATH_MAX + 1];
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
       if( LetoMakeDir( pConnection, szFile ) )
@@ -814,7 +815,7 @@ HB_FUNC( LETO_VARSET )
    BOOL bPrev = HB_ISBYREF( 5 );
    char ** pRetValue;
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( pCurrentConn )
    {
       if( !HB_ISNIL(1) && !HB_ISNIL(2) && !HB_ISNIL(3) )
@@ -876,7 +877,7 @@ HB_FUNC( LETO_VARGET )
    char cType;
    LONG lValue;
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( pCurrentConn )
    {
       if( !HB_ISNIL(1) && !HB_ISNIL(2) )
@@ -910,7 +911,7 @@ HB_FUNC( LETO_VARINCR )
 {
    LONG lValue;
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( pCurrentConn )
    {
       if( !HB_ISNIL(1) && !HB_ISNIL(2) )
@@ -918,7 +919,7 @@ HB_FUNC( LETO_VARINCR )
          lValue = LetoVarIncr( pCurrentConn, (char*)hb_parc(1), (char*)hb_parc(2),
                (HB_ISNIL(3))? 0 : hb_parni(3) );
 
-         if( !LetoGetFError() )
+         if( !LetoGetError() )
          {
             hb_retnl( lValue );
             return;
@@ -935,7 +936,7 @@ HB_FUNC( LETO_VARDECR )
 {
    LONG lValue;
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( pCurrentConn )
    {
       if( !HB_ISNIL(1) && !HB_ISNIL(2) )
@@ -943,7 +944,7 @@ HB_FUNC( LETO_VARDECR )
          lValue = LetoVarDecr( pCurrentConn, (char*)hb_parc(1), (char*)hb_parc(2),
                (HB_ISNIL(3))? 0 : hb_parni(3) );
 
-         if( !LetoGetFError() )
+         if( !LetoGetError() )
          {
             hb_retnl( lValue );
             return;
@@ -975,7 +976,7 @@ HB_FUNC( LETO_VARGETLIST )
    USHORT uiItems = 0;
    USHORT uiMaxLen = (HB_ISNUM(2))? hb_parni(2) : 0;
 
-   LetoSetFError( -10 );
+   LetoSetError( -10 );
    if( pCurrentConn )
    {
       if( !pGroup || uiMaxLen > 999 )
