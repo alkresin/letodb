@@ -1,4 +1,4 @@
-/* $Id: $ */
+/* $Id: letocl.h,v 1.1.2.7 2013/12/25 10:09:12 alkresin Exp $ */
 
 /*
  * Harbour Project source code:
@@ -107,6 +107,16 @@ typedef struct _CDPSTRU
    struct _CDPSTRU * pNext;
 } CDPSTRU, *PCDPSTRU;
 
+typedef struct _LETOBUFFER_
+{
+   BYTE *      pBuffer;          /* Buffer for records */
+   ULONG       ulBufLen;         /* allocated buffer length */
+   ULONG       ulBufDataLen;     /* data length in buffer */
+   BOOL        bSetDeleted;      /* current _SET_DELETED flag */
+   ULONG       ulDeciSec;        /* buffer time in 1/100 seconds */
+   USHORT      uiShoots;         /* using statistic */
+} LETOBUFFER;
+
 typedef struct _LETOFIELD
 {
    char       szName[12];
@@ -143,6 +153,13 @@ typedef struct _LETOTABLE
    unsigned long ulRecNo;
    unsigned long ulRecCount;          /* Count of records */
    unsigned char * pRecord;           /* Buffer of record data */
+
+   LETOBUFFER  Buffer;                /* skip buffer */
+   unsigned char *  ptrBuf;
+   unsigned int  uiRecInBuf;
+   signed char BufDirection;
+
+   long          lLastUpdate;         /* from dbf header: last update */
 
 } LETOTABLE;
 
@@ -211,6 +228,13 @@ LETOTABLE * LetoDbCreate( LETOCONNECTION * pConnection, char * szFile, char * sz
 LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea );
 unsigned int LetoDbBof( LETOTABLE * pTable );
 unsigned int LetoDbEof( LETOTABLE * pTable );
+unsigned int LetoDbGetField( LETOTABLE * pTable, unsigned int uiIndex, char * szRet, unsigned int * uiLen );
+unsigned int LetoDbRecCount( LETOTABLE * pTable, unsigned long * ulCount );
+unsigned int LetoDbFieldCount( LETOTABLE * pTable, unsigned int * uiCount );
+unsigned int LetoDbFieldName( LETOTABLE * pTable, unsigned int uiIndex, char * szName );
+unsigned int LetoDbFieldType( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiType );
+unsigned int LetoDbFieldLen( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiLen );
+unsigned int LetoDbFieldDec( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiDec );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );

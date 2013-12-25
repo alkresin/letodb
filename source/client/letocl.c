@@ -1,4 +1,4 @@
-/* $Id: $ */
+/* $Id: letocl.c,v 1.1.2.8 2013/12/25 10:09:12 alkresin Exp $ */
 
 /*
  * Harbour Project source code:
@@ -99,6 +99,40 @@ char * leto_firstchar( void )
       return (s_szBuffer+2+iLenLen);
    else
       return (s_szBuffer+1);
+}
+
+static long leto_dateEncStr( const char * szDate )
+{
+   int  iYear, iMonth, iDay;
+
+   if( szDate )
+   {
+      iYear = ( ( ( int ) ( szDate[ 0 ] - '0' )   * 10 +
+                  ( int ) ( szDate[ 1 ] - '0' ) ) * 10 +
+                  ( int ) ( szDate[ 2 ] - '0' ) ) * 10 +
+                  ( int ) ( szDate[ 3 ] - '0' );
+      iMonth = ( szDate[ 4 ] - '0' ) * 10 + ( szDate[ 5 ] - '0' );
+      iDay   = ( szDate[ 6 ] - '0' ) * 10 + ( szDate[ 7 ] - '0' );
+
+      if( iYear >= 0 && iYear <= 9999 && iMonth >= 1 && iMonth <= 12 && iDay >= 1 )
+      {
+         static const int auiDayLimit[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+         if( iDay <= auiDayLimit[ iMonth - 1 ] ||
+             ( iDay == 29 && iMonth == 2 &&
+               ( iYear & 3 ) == 0 && ( iYear % 100 != 0 || iYear % 400 == 0 ) ) )
+         {
+            int iFactor = ( iMonth < 3 ) ? -1 : 0;
+
+            return ( ( long )( iFactor + 4800 + iYear ) * 1461 / 4 ) +
+                   ( ( long )( iMonth - 2 - ( iFactor * 12 ) ) * 367 ) / 12 -
+                   ( ( long )( ( iFactor + 4900 + iYear ) / 100 ) * 3 / 4 ) +
+                   ( long ) iDay - 32075;
+         }
+      }
+   }
+
+   return 0;
 }
 
 void leto_setCallback( void( *fn )( void ) )
@@ -383,6 +417,7 @@ long int leto_Recv( LETOCONNECTION * pConnection )
       {
          s_lBufferLen = lMsgLen + 1;
          s_szBuffer = (char*) realloc( s_szBuffer, s_lBufferLen );
+         ptr = s_szBuffer;
       }
 
       do
@@ -1443,7 +1478,7 @@ LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAl
       if( LetoCheckServerVer( pConnection, 208 ) )
       {
          LetoGetCmdItem( &ptr, szTemp ); ptr ++;
-         //pArea->lLastUpdate = hb_dateEncStr( szTemp );
+         pTable->lLastUpdate = leto_dateEncStr( szTemp );
       }
    }
    // Read number of fields
@@ -1566,6 +1601,91 @@ unsigned int LetoDbBof( LETOTABLE * pTable )
 unsigned int LetoDbEof( LETOTABLE * pTable )
 {
    return pTable->fEof;
+}
+
+unsigned int LetoDbGetField( LETOTABLE * pTable, unsigned int uiIndex, char * szRet, unsigned int * uiLen )
+{
+   if( !uiIndex || uiIndex > pTable->uiFieldExtent )
+      return 1;
+
+   if( !*uiLen || *uiLen > (pTable->pFields+uiIndex-1)->uiLen )
+      *uiLen = (pTable->pFields+uiIndex-1)->uiLen;
+
+   memcpy( szRet, pTable->pRecord + pTable->pFieldOffset[uiIndex], *uiLen );
+   szRet[ *uiLen ] = '\0';
+
+   return 0;
+}
+
+unsigned int LetoDbRecCount( LETOTABLE * pTable, unsigned long * ulCount )
+{
+   char szData[32], * ptr;
+
+   if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
+   {
+      if( letoConnPool[pTable->uiConnection].bRefreshCount || !pTable->ulRecCount )
+      {
+         sprintf( szData,"rcou;%lu;\r\n", pTable->hTable );
+         if ( !leto_SendRecv( pTable, szData, 0, 1021 ) ) return 1;
+
+         ptr = leto_firstchar();
+         pTable->ulRecCount = *ulCount = (unsigned long) atol( ptr );
+      }
+      else
+         *ulCount = pTable->ulRecCount;
+   }
+   else
+   {
+      sprintf( szData,"rcou;%lu;\r\n", pTable->hTable );
+      if ( !leto_SendRecv( pTable, szData, 0, 1021 ) ) return 1;
+
+      ptr = leto_firstchar();
+      pTable->ulRecCount = *ulCount = (unsigned long) atol( ptr );
+   }
+
+   return 0;
+}
+
+unsigned int LetoDbFieldCount( LETOTABLE * pTable, unsigned int * uiCount )
+{
+   *uiCount = pTable->uiFieldExtent;
+   return 0;
+}
+
+unsigned int LetoDbFieldName( LETOTABLE * pTable, unsigned int uiIndex, char * szName )
+{
+   if( !szName || !uiIndex || uiIndex > pTable->uiFieldExtent )
+      return 1;
+
+   strcpy( szName, (pTable->pFields+uiIndex-1)->szName );
+   return 0;
+}
+
+unsigned int LetoDbFieldType( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiType )
+{
+   if( !uiType || !uiIndex || uiIndex > pTable->uiFieldExtent )
+      return 1;
+
+   *uiType = (pTable->pFields+uiIndex-1)->uiType;
+   return 0;
+}
+
+unsigned int LetoDbFieldLen( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiLen )
+{
+   if( !uiLen || !uiIndex || uiIndex > pTable->uiFieldExtent )
+      return 1;
+
+   *uiLen = (pTable->pFields+uiIndex-1)->uiLen;
+   return 0;
+}
+
+unsigned int LetoDbFieldDec( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiDec )
+{
+   if( !uiDec || !uiIndex || uiIndex > pTable->uiFieldExtent )
+      return 1;
+
+   *uiDec = (pTable->pFields+uiIndex-1)->uiDec;
+   return 0;
 }
 
 char * LetoMgGetInfo( LETOCONNECTION * pConnection )

@@ -1,4 +1,4 @@
-/*  $Id: funcleto.h,v 1.28.2.21 2013/12/13 16:40:26 alkresin Exp $  */
+/*  $Id: funcleto.h,v 1.28.2.22 2013/12/25 05:41:13 alkresin Exp $  */
 
 /*
  * Harbour Project source code:

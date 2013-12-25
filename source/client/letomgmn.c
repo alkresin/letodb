@@ -611,7 +611,7 @@ HB_FUNC( LETO_SETSKIPBUFFER )
             leto_DataSendRecv( pConnection, szData, 0 );
          }
       }
-      hb_retni( pArea->Buffer.uiShoots );
+      hb_retni( pArea->pTable->Buffer.uiShoots );
    }
    else
       hb_retni( 0 );

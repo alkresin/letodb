@@ -1,4 +1,4 @@
-/*  $Id: rddleto.h,v 1.40.2.20 2013/12/09 10:07:49 alkresin Exp $  */
+/*  $Id: rddleto.h,v 1.40.2.21 2013/12/25 05:41:13 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -54,16 +54,6 @@
 #include "letocl.h"
 
 HB_EXTERN_BEGIN
-
-typedef struct _LETOBUFFER_
-{
-   BYTE *      pBuffer;          /* Buffer for records */
-   ULONG       ulBufLen;         /* allocated buffer length */
-   ULONG       ulBufDataLen;     /* data length in buffer */
-   BOOL        bSetDeleted;      /* current _SET_DELETED flag */
-   ULONG       ulDeciSec;        /* buffer time in 1/100 seconds */
-   USHORT      uiShoots;         /* using statistic */
-} LETOBUFFER;
 
 typedef struct _LETOTAGINFO
 {
@@ -125,10 +115,10 @@ typedef struct _LETOAREA_
    //ULONG    ulRecCount;          /* Count of records */
    //BYTE *   pRecord;             /* Buffer of record data */
 
-   LETOBUFFER  Buffer;           /* skip buffer */
-   BYTE *   ptrBuf;
-   USHORT   uiRecInBuf;
-   signed char BufDirection;
+   //LETOBUFFER  Buffer;           /* skip buffer */
+   //BYTE *   ptrBuf;
+   //USHORT   uiRecInBuf;
+   //signed char BufDirection;
 
    USHORT   uiUpdated;
    //USHORT * pFieldUpd;           /* Pointer to updated fields array */
@@ -159,7 +149,7 @@ typedef struct _LETOAREA_
 
    USHORT   uiSkipBuf;           /* skip buffer size */
 
-   LONG     lLastUpdate;         /* from dbf header: last update */
+   //LONG     lLastUpdate;         /* from dbf header: last update */
    SHORT    iBufRefreshTime;
 
 } LETOAREA;
