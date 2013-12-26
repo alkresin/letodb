@@ -1,4 +1,4 @@
-/*  $Id: rddleto.h,v 1.40.2.21 2013/12/25 05:41:13 alkresin Exp $  */
+/*  $Id: rddleto.h,v 1.40.2.22 2013/12/26 12:26:58 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -147,10 +147,10 @@ typedef struct _LETOAREA_
    //BYTE     bMemoType;           /* MEMO type used in DBF memo fields */
    //USHORT   uiMemoVersion;       /* MEMO file version */
 
-   USHORT   uiSkipBuf;           /* skip buffer size */
+   //USHORT   uiSkipBuf;           /* skip buffer size */
 
    //LONG     lLastUpdate;         /* from dbf header: last update */
-   SHORT    iBufRefreshTime;
+   //SHORT    iBufRefreshTime;
 
 } LETOAREA;
 

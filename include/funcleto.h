@@ -1,4 +1,4 @@
-/*  $Id: funcleto.h,v 1.28.2.22 2013/12/25 05:41:13 alkresin Exp $  */
+/*  $Id: funcleto.h,v 1.28.2.23 2013/12/26 12:26:58 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -222,6 +222,7 @@ extern void hb_ip_rfd_set( HB_SOCKET_T hSocket );
 extern BOOL hb_ip_rfd_isset( HB_SOCKET_T hSocket );
 extern int hb_ip_rfd_select( int iTimeOut );
 extern void hb_getLocalIP( HB_SOCKET_T hSocket, char * szIP );
+extern unsigned long leto_MilliSec( void );
 extern int leto_n2b( char *s, unsigned long int n );
 extern int leto_n2cb( char *s, unsigned long int n, int iLenLen );
 extern long int leto_b2n( const char *s, int iLenLen );

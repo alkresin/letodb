@@ -1,4 +1,4 @@
-/*  $Id: common_c.c,v 1.15 2010/06/02 07:08:44 aokhotnikov Exp $  */
+/*  $Id: common_c.c,v 1.15.2.6 2013/12/26 12:26:59 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -52,6 +52,31 @@
 #define HB_LEGACY_TYPES_ON
 
 #include "hbdefs.h"
+
+#if defined(HB_OS_UNIX) || defined( HB_OS_UNIX ) || defined( HB_OS_BSD )
+  #include <unistd.h>
+  #include <sys/time.h>
+  #include <sys/timeb.h>
+#else
+  #include <windows.h>
+#endif
+
+unsigned long leto_MilliSec( void )
+{
+#if defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
+   SYSTEMTIME st;
+   GetLocalTime( &st );
+   return (st.wMinute * 60 + st.wSecond) * 1000 + st.wMilliseconds;
+#elif ( defined( HB_OS_LINUX ) || defined( HB_OS_BSD ) ) && !defined( __WATCOMC__ )
+   struct timeval tv;
+   gettimeofday( &tv, NULL );
+   return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#else
+   struct timeb tb;
+   ftime( &tb );
+   return tb.time * 1000 + tb.millitm;
+#endif
+}
 
 long int leto_b2n( const char *s, int iLenLen )
 {

@@ -602,7 +602,7 @@ HB_FUNC( LETO_SETSKIPBUFFER )
          LETOCONNECTION * pConnection = leto_getConnectionPool() + pArea->pTable->uiConnection;
          if( LetoCheckServerVer( pConnection, 206 ) )
          {
-            pArea->uiSkipBuf = hb_parni(1);
+            pArea->pTable->uiSkipBuf = hb_parni(1);
          }
          else
          {

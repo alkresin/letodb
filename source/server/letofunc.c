@@ -287,23 +287,6 @@ DBFAREAP leto_SelectArea( ULONG ulAreaID, USHORT nUserStru, PAREASTRU * ppAStru 
 
 }
 
-ULONG leto_MilliSec( void )
-{
-#if defined(HB_OS_WIN_32) || defined( HB_OS_WIN )
-   SYSTEMTIME st;
-   GetLocalTime( &st );
-   return (st.wMinute * 60 + st.wSecond) * 1000 + st.wMilliseconds;
-#elif ( defined( HB_OS_LINUX ) || defined( HB_OS_BSD ) ) && !defined( __WATCOMC__ )
-   struct timeval tv;
-   gettimeofday( &tv, NULL );
-   return tv.tv_sec * 1000 + tv.tv_usec / 1000;
-#else
-   struct timeb tb;
-   ftime( &tb );
-   return tb.time * 1000 + tb.millitm;
-#endif
-}
-
 void leto_profile( int iMode, int i1, ULONG ** parr1, ULONG ** parr2 )
 {
    static ULONG arr1[10];

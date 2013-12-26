@@ -1,4 +1,4 @@
-/* $Id: letocl.h,v 1.1.2.7 2013/12/25 10:09:12 alkresin Exp $ */
+/* $Id: letocl.h,v 1.1.2.8 2013/12/26 12:26:58 alkresin Exp $ */
 
 /*
  * Harbour Project source code:
@@ -109,12 +109,12 @@ typedef struct _CDPSTRU
 
 typedef struct _LETOBUFFER_
 {
-   BYTE *      pBuffer;          /* Buffer for records */
-   ULONG       ulBufLen;         /* allocated buffer length */
-   ULONG       ulBufDataLen;     /* data length in buffer */
-   BOOL        bSetDeleted;      /* current _SET_DELETED flag */
-   ULONG       ulDeciSec;        /* buffer time in 1/100 seconds */
-   USHORT      uiShoots;         /* using statistic */
+   unsigned char * pBuffer;          /* Buffer for records */
+   unsigned long ulBufLen;         /* allocated buffer length */
+   unsigned long ulBufDataLen;     /* data length in buffer */
+   unsigned int  bSetDeleted;      /* current _SET_DELETED flag */
+   unsigned long ulDeciSec;        /* buffer time in 1/100 seconds */
+   unsigned int  uiShoots;         /* using statistic */
 } LETOBUFFER;
 
 typedef struct _LETOFIELD
@@ -143,6 +143,7 @@ typedef struct _LETOTABLE
    unsigned char bMemoType;           /* MEMO type used in DBF memo fields */
    unsigned int  uiMemoVersion;       /* MEMO file version */
 
+   unsigned int  fShared;
    unsigned int  fBof;                /* HB_TRUE if "bof" */
    unsigned int  fEof;                /* HB_TRUE if "eof" */
    unsigned int  fFound;              /* HB_TRUE if "found" */
@@ -159,7 +160,9 @@ typedef struct _LETOTABLE
    unsigned int  uiRecInBuf;
    signed char BufDirection;
 
+   unsigned int  uiSkipBuf;           /* skip buffer size */
    long          lLastUpdate;         /* from dbf header: last update */
+   int           iBufRefreshTime;
 
 } LETOTABLE;
 
@@ -214,6 +217,7 @@ void LetoExit( unsigned int uiFull );
 void LetoSetDateFormat( const char * szDateFormat );
 void LetoSetCentury( char cCentury );
 void LetoSetCdp( const char * szCdp );
+void LetoSetDeleted( unsigned int uiDeleted );
 void LetoSetModName( char * szModule );
 int LetoGetConnectRes( void );
 int LetoGetCmdItem( char ** pptr, char * szDest );
@@ -235,6 +239,11 @@ unsigned int LetoDbFieldName( LETOTABLE * pTable, unsigned int uiIndex, char * s
 unsigned int LetoDbFieldType( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiType );
 unsigned int LetoDbFieldLen( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiLen );
 unsigned int LetoDbFieldDec( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiDec );
+void LetoDbGotoEof( LETOTABLE * pTable );
+unsigned int LetoDbGoTo( LETOTABLE * pTable, unsigned long ulRecNo, char * szTag );
+unsigned int LetoDbGoTop( LETOTABLE * pTable, char * szTag );
+unsigned int LetoDbGoBottom( LETOTABLE * pTable, char * szTag );
+unsigned int LetoDbSkip( LETOTABLE * pTable, long lToSkip, char * szTag );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );
@@ -278,4 +287,10 @@ int LetoMakeDir( LETOCONNECTION * pConnection, char * szFile );
 unsigned int leto_IsBinaryField( unsigned int uiType, unsigned int uiLen );
 void leto_SetBlankRecord( LETOTABLE * pTable, unsigned int uiAppend );
 int leto_ParseRecord( LETOTABLE * pTable, const char * szData, unsigned int uiCrypt );
+void leto_AllocBuf( LETOBUFFER *pLetoBuf, unsigned long ulDataLen, ULONG ulAdd );
+unsigned long leto_BufStore( LETOTABLE * pTable, char * pBuffer, const char * ptr, unsigned long ulDataLen );
+unsigned int leto_HotBuffer( LETOTABLE * pTable, LETOBUFFER * pLetoBuf, unsigned int uiBufRefreshTime );
+unsigned int leto_OutBuffer( LETOBUFFER * pLetoBuf, char * ptr );
+unsigned long leto_BufRecNo( char * ptrBuf );
+void leto_setSkipBuf( LETOTABLE * pTable, const char * ptr, unsigned long ulDataLen, unsigned int uiRecInBuf );
 

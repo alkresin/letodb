@@ -38,6 +38,7 @@ Field NAME, NUM, INFO, DINFO
          DINFO WITH Date()+i-1
    NEXT
    ? "Records has been added"
+
    INDEX ON NAME TAG NAME
    INDEX ON Str(NUM,4) TAG NUM
    ? "File has been indexed"
