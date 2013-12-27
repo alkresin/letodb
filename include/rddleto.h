@@ -1,4 +1,4 @@
-/*  $Id: rddleto.h,v 1.40.2.22 2013/12/26 12:26:58 alkresin Exp $  */
+/*  $Id: rddleto.h,v 1.40.2.23 2013/12/27 08:47:34 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -120,7 +120,7 @@ typedef struct _LETOAREA_
    //USHORT   uiRecInBuf;
    //signed char BufDirection;
 
-   USHORT   uiUpdated;
+   //USHORT   uiUpdated;
    //USHORT * pFieldUpd;           /* Pointer to updated fields array */
 
    //USHORT * pFieldOffset;        /* Pointer to field offset array */
@@ -128,8 +128,8 @@ typedef struct _LETOAREA_
    //BOOL     fDeleted;            /* Deleted record */
    //BOOL     fRecLocked;          /* TRUE if record is locked */
 
-   BOOL     fShared;             /* Shared file */
-   BOOL     fReadonly;           /* Read only file */
+   //BOOL     fShared;             /* Shared file */
+   //BOOL     fReadonly;           /* Read only file */
    BOOL     fFLocked;            /* TRUE if file is locked */
 
    //USHORT   uiConnection;        /* connection number */

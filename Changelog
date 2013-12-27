@@ -6,11 +6,209 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
-2013-12-24 16:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
-  * Open/Create/Close dbf implemented via the C Client
+2013-12-27 15:20 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * New functions added:
+    LetoDbPutField() and LetoDbAppend()
+    It's possible now to add data to dbf tables with the C client.
+  * tests/c_lang/test_dbf.c
+    * test extended with append record to dbf
 
-2013-12-07 09:05 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
-  * Some cleanup before dividing client part to C and Harbour.
+2013-12-27 12:46 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+  * source/client/letomgmn.c
+    * Few items noved from LETOAREAP to LETOTABLE structure,
+      new function LetoDbPutRecord() added,
+      few functions renamed:
+      LetoIsFileExist() --> LetoFileExist(),
+      LetoMakeDir() --> LetoDirMake(),
+      LetoDbOpen() --> LetoDbOpenTable(),
+      LetoDbClose() --> LetoDbCloseTable()
+      LetoDbCreate() --> LetoDbCreateTable()
+
+2013-12-26 16:27 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * include/funcleto.h
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+  * source/client/letomgmn.c
+    * Few other function added to the C Client:
+      LetoDbGoTo(), LetoDbGoTop(), LetoDbGoBottom(), LetoDbSkip()
+      and appropriate RDD methods are reimplemented, using them
+  * source/common/common_c.c
+  * source/server/letofunc.c
+    * leto_millisec() is moved from letofunc.c to common_c.c
+
+2013-12-25 14:05 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * New functions added to the C Client:
+      LetoDbGetField(), LetoDbRecCount(), LetoDbFieldCount(),
+      LetoDbFieldName(), LetoDbFieldType(), LetoDbFieldLen(),
+      LetoDbFieldDec()
+  * tests/c_lang/test_var.c
+    ! Bug fixed
+  + tests/c_lang/test_dbf.c
+    + C client test of dbf functions added.
+
+2013-12-25 11:40 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * tests/c_lang/test1.c
+    * Added possibility to pass addess and port as parameters
+  + tests/c_lang/test_var.c
+    + C client test of var functions added.
+
+2013-12-25 09:48 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/letocl.c
+    ! Bug fixed in leto_recv()
+
+2013-12-25 09:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/letocl.h
+  * include/funcleto.h
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+  * source/client/letomgmn.c
+    * Open/Create/Close dbfs is implemented via the C client.
+      To do this new structure LETOTABLE is created, it is the main
+      dbf table structure for the C client. Few items from LETOAREA
+      are moved to the LETOTABLE, pointer to the LETOTABLE ( pTable )
+      is added to the LETOAREA. Few items from the base AREA are copied
+      to the LETOTABLE ( fBof, fEof, fFound ), because they are needed for
+      the C client, but it haven't access to the AREA.
+  * tests/test_dbf.prg
+    * test is extended a bit.
+
+2013-12-24 10:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/letocl.h
+  * source/client/letocl.c
+  * source/client/letomgmn.c
+    * third parameter ( length ) added added to LetoMemoRead.
+  * tests/test_dbf.prg
+    * Structure checking added
+
+2013-12-23 11:43 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + tests/test_dbf.prg
+    + Added test of dbf handling
+  * tests/test_ta.prg
+  * tests/test_var.prg
+  * tests/test_file.prg
+    * Small changes
+
+2013-12-19 14:58 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/letocl.h
+  * source/client/letocl.c
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+    * All file functions are implemented via the C client layer.
+  * tests/test_file.prg
+  * tests/test_var.prg
+    * tests enhanced
+
+2013-12-16 09:55 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/letocl.h
+  * source/client/letocl.c
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+    * leto_var... and part of file functions are implemented via
+      C client layer.
+  + tests/test_file.prg
+    + test added for file functions
+
+2013-12-13 20:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + source/client/letocl.c
+    + added pure C leto client layer.
+      Together with common_c.c, hbip.c and blowfish.c it will be linked to
+      leto.lib - the client library for letodb. It doesn't contain Harbour related
+      code and can be used in applications, written on different languages.
+  * include/letocl.h
+  * include/funcleto.h
+  * source/client/leto1.c
+  * source/client/letomgmn.c
+    * changes to support new leto client layer
+  * source/common/hbip.c
+    * removed Harbour related code to make it possible to use it with leto.lib
+  * makefile.bc
+  * makefile.vc
+  * makefile.gcc
+  * Makefile.linux
+  * Makefile.linux
+    * makefiles changed to build leto.lib
+  + leto.hbp
+    + hbp file to build leto.lib
+  + tests/bld.bat
+    + added bat file to build prg tests
+  + tests/c_lang
+  + tests/c_lang/bldc.bat
+  + tests/c_lang/test1.c
+    + tests for leto.lib
+  * utils/manager/console.prg
+  * utils/manager/manage.prg
+  * utils/backup/letobackup.prg
+    * removed hb_ipinit() calls
+
+2013-12-11 13:08 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+    * Connection closing logic simplified.
+
+2013-12-09 14:25 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/common/common_c.c
+    ! temporary fix
+  * makefile.bc
+  * makefile.gcc
+  * Makefile.linux
+  * Makefile.linux
+  * rddleto.hbp
+    * net.c has been removed from makefiles
+
+2013-12-09 14:06 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  + include/letocl.h  
+  * include/rddleto.h
+    * New header file added with LETOCONNNECTION declaration, moved
+      from rddleto.h. This is done to separate declarations, which
+      doesn't relates to rdd directly for future separate
+      C only connection layer.
+  * source/common/blowfish.c
+    * removed redundant #include "hbapi.h", the standard C <string.h>
+      is used instead.
+  - source/common/net.c
+    - the leto_netname() function is simplified a bit and moved to leto1.c,
+      where it is used.
+  * source/common/common_c.c
+    * few unused functions has been removed
+  * source/client/leto1.c
+    * leto_netname() function added.
+
+2013-12-06 19:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * include/rddleto.h
+  * include/funcleto.h
+  * source/client/leto1.c
+  * source/server/letofunc.c
+  * source/server/leto_2.c
+  * source/server/letocore.c
+    * HARBOUR_VER_AFTER_101 and HARBOUR_VER_BEFORE_100 abd related code
+      has been removed
+    ! Few warnings fixed
+
+2013-12-06 13:40 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
+  * source/client/leto1.c
+  * source/server/letofunc.c
+    * Second parameter ( length of a string ) has been added to leto_writelog().
+  * source/server/leto_2.c
+  * source/server/letocore.c
+    * The calls of leto_writelog() are changed
+  * source/server/letovars.c
+    * Some cleanup
+  * source/client/letomgmn.c
+    * The calls of leto_writelog() are changed
+  * source/common/common_c.c
+    * The call of leto_writelog() is changed
 
 2013-12-05 15:15 UTC+0300 Alexander Kresin (alex/at/belacy.belgorod.su)
   * Client side is fully synhronized with SVN version.

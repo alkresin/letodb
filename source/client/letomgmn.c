@@ -149,7 +149,7 @@ HB_FUNC( LETO_FILE )
 
    LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
-      hb_retl( LetoIsFileExist( pConnection, szFile ) );
+      hb_retl( LetoFileExist( pConnection, szFile ) );
    else
       hb_retl( FALSE );
 }
@@ -338,7 +338,7 @@ HB_FUNC( LETO_MAKEDIR )
    LetoSetError( -10 );
    if( HB_ISCHAR(1) && ( pConnection = letoParseParam( hb_parc(1), szFile ) ) != NULL )
    {
-      if( LetoMakeDir( pConnection, szFile ) )
+      if( LetoDirMake( pConnection, szFile ) )
          hb_retni( 0 );
       else
          hb_retni( -1 );

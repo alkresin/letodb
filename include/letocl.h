@@ -1,4 +1,4 @@
-/* $Id: letocl.h,v 1.1.2.8 2013/12/26 12:26:58 alkresin Exp $ */
+/* $Id: letocl.h,v 1.1.2.10 2013/12/27 11:22:03 alkresin Exp $ */
 
 /*
  * Harbour Project source code:
@@ -133,6 +133,7 @@ typedef struct _LETOTABLE
 
    unsigned int  uiFieldExtent;
    LETOFIELD *   pFields;
+   unsigned int  uiUpdated;
    unsigned int * pFieldUpd;           /* Pointer to updated fields array */
    unsigned int * pFieldOffset;        /* Pointer to field offset array */
 
@@ -143,7 +144,8 @@ typedef struct _LETOTABLE
    unsigned char bMemoType;           /* MEMO type used in DBF memo fields */
    unsigned int  uiMemoVersion;       /* MEMO file version */
 
-   unsigned int  fShared;
+   unsigned int  fShared;             /* Shared file */
+   unsigned int  fReadonly;           /* Read only file */
    unsigned int  fBof;                /* HB_TRUE if "bof" */
    unsigned int  fEof;                /* HB_TRUE if "eof" */
    unsigned int  fFound;              /* HB_TRUE if "found" */
@@ -226,10 +228,11 @@ int LetoCloseAll( LETOCONNECTION * pConnection );
 void LetoConnectionClose( LETOCONNECTION * pConnection );
 char * LetoGetServerVer( LETOCONNECTION * pConnection );
 void LetoSetPath( LETOCONNECTION * pConnection, const char * szPath );
+unsigned int LetoSetFastAppend( unsigned int uiFApp );
 
-int LetoDbClose( LETOTABLE * pTable );
-LETOTABLE * LetoDbCreate( LETOCONNECTION * pConnection, char * szFile, char * szAlias, char * szFields, unsigned int uiArea );
-LETOTABLE * LetoDbOpen( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea );
+int LetoDbCloseTable( LETOTABLE * pTable );
+LETOTABLE * LetoDbCreateTable( LETOCONNECTION * pConnection, char * szFile, char * szAlias, char * szFields, unsigned int uiArea );
+LETOTABLE * LetoDbOpenTable( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea );
 unsigned int LetoDbBof( LETOTABLE * pTable );
 unsigned int LetoDbEof( LETOTABLE * pTable );
 unsigned int LetoDbGetField( LETOTABLE * pTable, unsigned int uiIndex, char * szRet, unsigned int * uiLen );
@@ -244,6 +247,9 @@ unsigned int LetoDbGoTo( LETOTABLE * pTable, unsigned long ulRecNo, char * szTag
 unsigned int LetoDbGoTop( LETOTABLE * pTable, char * szTag );
 unsigned int LetoDbGoBottom( LETOTABLE * pTable, char * szTag );
 unsigned int LetoDbSkip( LETOTABLE * pTable, long lToSkip, char * szTag );
+unsigned int LetoDbPutRecord( LETOTABLE * pTable, unsigned int bCommit );
+unsigned int LetoDbPutField( LETOTABLE * pTable, unsigned int uiIndex, char * szValue, unsigned int uiLen );
+unsigned int LetoDbAppend( LETOTABLE * pTable, unsigned int fUnLockAll );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );
@@ -273,7 +279,7 @@ long LetoVarDecr( LETOCONNECTION * pConnection, char * szGroup, char * szVar, un
 int LetoVarDel( LETOCONNECTION * pConnection, char * szGroup, char * szVar );
 char * LetoVarGetList( LETOCONNECTION * pConnection, const char * szGroup, unsigned int uiMaxLen );
 
-int LetoIsFileExist( LETOCONNECTION * pConnection, char * szFile );
+int LetoFileExist( LETOCONNECTION * pConnection, char * szFile );
 int LetoFileErase( LETOCONNECTION * pConnection, char * szFile );
 int LetoFileRename( LETOCONNECTION * pConnection, char * szFile, char * szFileNew );
 char * LetoMemoRead( LETOCONNECTION * pConnection, char * szFile, unsigned long * ulMemoLen );
@@ -282,7 +288,7 @@ char * LetoFileRead( LETOCONNECTION * pConnection, char * szFile, unsigned long 
 int LetoFileWrite( LETOCONNECTION * pConnection, char * szFile, char * szValue, unsigned long ulStart, unsigned long ulLen );
 long int LetoFileSize( LETOCONNECTION * pConnection, char * szFile );
 char * LetoDirectory( LETOCONNECTION * pConnection, char * szDir, char * szAttr );
-int LetoMakeDir( LETOCONNECTION * pConnection, char * szFile );
+int LetoDirMake( LETOCONNECTION * pConnection, char * szFile );
 
 unsigned int leto_IsBinaryField( unsigned int uiType, unsigned int uiLen );
 void leto_SetBlankRecord( LETOTABLE * pTable, unsigned int uiAppend );
@@ -293,4 +299,5 @@ unsigned int leto_HotBuffer( LETOTABLE * pTable, LETOBUFFER * pLetoBuf, unsigned
 unsigned int leto_OutBuffer( LETOBUFFER * pLetoBuf, char * ptr );
 unsigned long leto_BufRecNo( char * ptrBuf );
 void leto_setSkipBuf( LETOTABLE * pTable, const char * ptr, unsigned long ulDataLen, unsigned int uiRecInBuf );
-
+void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULONG ulLen );
+void leto_SetUpdated( LETOTABLE * pTable, USHORT uiUpdated );

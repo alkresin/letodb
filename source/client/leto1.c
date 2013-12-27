@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.166.2.87 2013/12/26 12:26:58 alkresin Exp $  */
+/*  $Id: leto1.c,v 1.166.2.89 2013/12/27 11:22:03 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -92,7 +92,6 @@ static USHORT s_uiRddCount = 0;
 static USHORT s_uiRddIdLETO = ( USHORT ) -1;
 static RDDFUNCS letoSuper;
 
-static BOOL s_bFastAppend = 0;
 static PHB_ITEM s_pEvalItem = NULL;
 
 extern USHORT uiConnCount;
@@ -323,31 +322,6 @@ static BOOL leto_checkLockError( LETOAREAP pArea )
    return FALSE;
 }
 
-static ULONG leto_TransBlockLen( LETOCONNECTION * pConnection, ULONG ulLen )
-{
-   return ( pConnection->ulTransBlockLen ? pConnection->ulTransBlockLen : (ulLen<256)? 1024 : ulLen*3 );
-}
-
-static void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULONG ulLen )
-{
-   if( !pConnection->szTransBuffer )
-   {
-      pConnection->ulTransBuffLen = leto_TransBlockLen( pConnection, ulLen );
-      pConnection->szTransBuffer = (BYTE*) malloc( pConnection->ulTransBuffLen );
-      memcpy( pConnection->szTransBuffer+4, "ta;", 3 );
-   }
-   if( !pConnection->ulTransDataLen )
-      pConnection->ulTransDataLen = pConnection->uiTBufOffset;
-   if( pConnection->ulTransBuffLen - pConnection->ulTransDataLen <= ulLen )
-   {
-      pConnection->ulTransBuffLen = pConnection->ulTransDataLen + leto_TransBlockLen( pConnection, ulLen );
-      pConnection->szTransBuffer = (BYTE*) realloc( pConnection->szTransBuffer, pConnection->ulTransBuffLen );
-   }
-   memcpy( pConnection->szTransBuffer+pConnection->ulTransDataLen, pData, ulLen );
-   pConnection->ulTransDataLen += ulLen;
-   pConnection->ulRecsInTrans ++;
-}
-
 static void leto_ClearSeekBuf( LETOTAGINFO * pTagInfo )
 {
    pTagInfo->Buffer.ulBufDataLen = 0;
@@ -377,170 +351,21 @@ static void leto_ClearBuffers( LETOAREAP pArea )
    leto_ClearAllSeekBuf( pArea );
 }
 
-static void leto_SetUpdated( LETOAREAP pArea, USHORT uiUpdated )
-{
-   pArea->uiUpdated = uiUpdated;
-   memset( pArea->pTable->pFieldUpd, 0, pArea->area.uiFieldCount * sizeof( USHORT ) );
-}
-
 static int leto_PutRec( LETOAREAP pArea, BOOL bCommit )
 {
-   USHORT ui, uiUpd = 0;
-   LPFIELD pField;
-   char * szData, * pData, * ptr, * ptrEnd;
-   USHORT uiRealLen, uiLen;
-   ULONG ulLen;
-   BOOL bAppend = FALSE;
-   int n255;
-   int iRet = SUCCESS;
-   LETOTABLE * pTable = pArea->pTable;
-   LETOCONNECTION * pConnection = letoConnPool + pTable->uiConnection;
 
-   if( ! pTable->ptrBuf )
-      pTable->Buffer.ulBufDataLen = 0;
    leto_ClearAllSeekBuf( pArea );
 
-   for( ui = 0; ui < pArea->area.uiFieldCount; ui++ )
-      if( pTable->pFieldUpd[ui] )
-         uiUpd ++;
-
-   szData = (char*) hb_xgrab( pTable->uiRecordLen + uiUpd * 5 + 20 );
-
-   pData = szData + 4;
-   if( pArea->uiUpdated & 1 )
-   {
-      if( bCommit )
-         sprintf( pData, "cmta;%lu;%d;%d;", pTable->hTable, (pArea->uiUpdated & 8)? 1 : 0, uiUpd );
-      else
-         sprintf( pData, "add;%lu;%d;%d;", pTable->hTable, (pArea->uiUpdated & 8)? 1 : 0, uiUpd );
-      bAppend = TRUE;
-   }
+   if( !LetoDbPutRecord( pArea->pTable, bCommit ) )
+      return SUCCESS;
    else
    {
-      if( bCommit )
-         sprintf( (char*) pData, "cmtu;%lu;%lu;%d;", pTable->hTable, pTable->ulRecNo, uiUpd );
+      if( LetoGetError() == 1000 )
+         commonError( pArea, EG_DATATYPE, LetoGetError(), 0, NULL, 0, NULL );
       else
-         sprintf( (char*) pData, "upd;%lu;%lu;%d;", pTable->hTable, pTable->ulRecNo, uiUpd );
+         leto_CheckError( pArea );
+      return FAILURE;
    }
-
-   pData += strlen( pData );
-   pData[0] = (pArea->uiUpdated & 4)? ((pTable->fDeleted)? '1' : '2') : '0';
-   pData[1] = ';';
-   pData += 2;
-
-   n255 = ( pArea->area.uiFieldCount > 255 ? 2 : 1 );
-   for( ui = 0; ui < pArea->area.uiFieldCount; ui++ )
-   {
-      if( pTable->pFieldUpd[ui] )
-      {
-         pField = pArea->area.lpFields + ui;
-         ptr = (char*) (pTable->pRecord + pTable->pFieldOffset[ui]);
-         ptrEnd = ptr + pField->uiLen - 1;
-         // Field number
-         pData += leto_n2cb( pData, ui+1, n255 );
-
-         switch( pField->uiType )
-         {
-            case HB_FT_STRING:
-               while( ptrEnd > ptr && *ptrEnd == ' ' ) ptrEnd --;
-               uiRealLen = ptrEnd - ptr + ( *ptrEnd == ' ' ? 0 : 1 );
-               // Trimmed field length
-               if( pField->uiLen < 256 )
-               {
-                  *pData = (BYTE) uiRealLen & 0xFF;
-                  uiLen = 1;
-               }
-               else
-               {
-                  uiLen = leto_n2b( pData+1, uiRealLen );
-                  *pData = (BYTE) uiLen & 0xFF;
-                  uiLen ++;
-               }
-               pData += uiLen;
-               memcpy( pData, ptr, uiRealLen );
-               pData += uiRealLen;
-               break;
-
-            case HB_FT_LONG:
-            case HB_FT_FLOAT:
-               while( ptrEnd > ptr && *ptr == ' ' ) ptr ++;
-               uiRealLen = ptrEnd - ptr + 1;
-               *pData = (BYTE) uiRealLen & 0xFF;
-               pData ++;
-               memcpy( pData, ptr, uiRealLen );
-               pData += uiRealLen;
-               break;
-
-            // binary fields
-            case HB_FT_INTEGER:
-            case HB_FT_CURRENCY:
-            case HB_FT_DOUBLE:
-            case HB_FT_DATETIME:
-            case HB_FT_MODTIME:
-            case HB_FT_DAYTIME:
-
-            case HB_FT_DATE:
-               memcpy( pData, ptr, pField->uiLen );
-               pData += pField->uiLen;
-               break;
-
-            case HB_FT_LOGICAL:
-               *pData++ = *ptr;
-               break;
-
-            case HB_FT_ANY:
-               if( pField->uiLen == 3 || pField->uiLen == 4 )
-               {
-                  memcpy( pData, ptr, pField->uiLen );
-                  pData += pField->uiLen;
-               }
-               else
-               {
-                  *pData++ = *ptr;
-                  switch( *ptr++ )
-                  {
-                     case 'D':
-                        memcpy( pData, ptr, 8 );
-                        pData += 8;
-                        break;
-                     case 'L':
-                        *pData++ = *ptr;
-                        break;
-                     case 'N':
-                        break;
-                     case 'C':
-                        uiLen = leto_b2n( ptr, 2 );
-                        memcpy( pData, ptr, uiLen + 2 );
-                        pData += uiLen + 2;
-                        break;
-                  }
-               }
-               break;
-         }
-      }
-   }
-   ulLen = pData - szData - 4;
-   pData = leto_AddLen( (szData+4), &ulLen, 1 );
-   leto_SetUpdated( pArea, 0);
-
-   if( pConnection->bTransActive )
-   {
-      leto_AddTransBuffer( pConnection, pData, ulLen );
-   }
-   else
-   {
-      if ( !leto_SendRecv( pArea, pData, ulLen, 0 ) || leto_CheckError( pArea ) )
-      {
-         iRet = FAILURE;
-      }
-      else if( bAppend )
-      {
-         pData = leto_firstchar();
-         sscanf( pData, "%lu;", &(pTable->ulRecNo) );
-      }
-   }
-   hb_xfree( szData );
-   return iRet;
 }
 
 static void leto_CreateKeyExpr( LETOAREAP pArea, LETOTAGINFO * pTagInfo, const char * szData, PHB_ITEM pKeyExp )
@@ -747,7 +572,7 @@ static ERRCODE letoGoBottom( LETOAREAP pArea )
    HB_TRACE(HB_TR_DEBUG, ("letoGoBottom(%p)", pArea));
 
    pArea->lpdbPendingRel = NULL;
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    LetoSetDeleted( (unsigned int) hb_setGetDeleted() );
@@ -780,7 +605,7 @@ static ERRCODE letoGoTo( LETOAREAP pArea, ULONG ulRecNo )
    HB_TRACE(HB_TR_DEBUG, ("letoGoTo(%p, %lu)", pArea, ulRecNo));
 
    pArea->lpdbPendingRel = NULL;
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    LetoSetDeleted( (unsigned int) hb_setGetDeleted() );
@@ -822,7 +647,7 @@ static ERRCODE letoGoTop( LETOAREAP pArea )
    HB_TRACE(HB_TR_DEBUG, ("letoGoTop(%p)", pArea));
 
    pArea->lpdbPendingRel = NULL;
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    LetoSetDeleted( (unsigned int) hb_setGetDeleted() );
@@ -1006,7 +831,7 @@ static ERRCODE letoSeek( LETOAREAP pArea, BOOL bSoftSeek, PHB_ITEM pKey, BOOL bF
    BOOL bSeekLeto = TRUE;
 
    pArea->lpdbPendingRel = NULL;
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( ! pTagInfo )
@@ -1148,7 +973,7 @@ static ERRCODE letoSkipRaw( LETOAREAP pArea, LONG lToSkip )
 
    HB_TRACE(HB_TR_DEBUG, ("letoSkip(%p, %ld)", pArea, lToSkip));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
    {
       leto_PutRec( pArea, FALSE );
       ptrBuf = pTable->ptrBuf;
@@ -1191,7 +1016,7 @@ static ERRCODE letoAppend( LETOAREAP pArea, BOOL fUnLockAll )
 
    HB_TRACE(HB_TR_DEBUG, ("letoAppend(%p, %d)", pArea, (int) fUnLockAll));
 
-   if( pArea->fReadonly )
+   if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
@@ -1199,17 +1024,12 @@ static ERRCODE letoAppend( LETOAREAP pArea, BOOL fUnLockAll )
 
    pArea->lpdbPendingRel = NULL;
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
-   leto_SetUpdated( pArea, (fUnLockAll)? 9 : 1);
-   pArea->area.fBof = pArea->area.fEof = pArea->area.fFound = pTable->fDeleted = 0;
-   pTable->ptrBuf = NULL;
-   leto_SetBlankRecord( pTable, TRUE );
-   pTable->ulRecCount ++;
-   if( s_bFastAppend || leto_PutRec( pArea, FALSE ) == SUCCESS )
-      pTable->fRecLocked = 1;
-   else
+   pArea->area.fBof = pArea->area.fEof = pArea->area.fFound = 0;
+
+   if( LetoDbAppend( pTable, fUnLockAll ) )
       return FAILURE;
 
    if( pArea->area.lpdbRelations )
@@ -1226,12 +1046,12 @@ static ERRCODE letoDeleteRec( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoDeleteRec(%p)", pArea));
 
-   if( pArea->fShared && !pArea->fFLocked && !pTable->fRecLocked )
+   if( pTable->fShared && !pArea->fFLocked && !pTable->fRecLocked )
    {
       commonError( pArea, EG_UNLOCKED, EDBF_UNLOCKED, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   else if( pArea->fReadonly )
+   else if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
@@ -1240,10 +1060,10 @@ static ERRCODE letoDeleteRec( LETOAREAP pArea )
 //   sprintf( szData,"del;01;%d;%lu;\r\n", pTable->hTable, pTable->ulRecNo );
 //   if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
 
-   if( ( pArea->uiUpdated & 4 ) || !pTable->fDeleted )
+   if( ( pTable->uiUpdated & 4 ) || !pTable->fDeleted )
    {
       pTable->fDeleted = 1;
-      pArea->uiUpdated |= 4;
+      pTable->uiUpdated |= 4;
    }
    return SUCCESS;
 }
@@ -1267,7 +1087,7 @@ static ERRCODE letoFlush( LETOAREAP pArea )
    char szData[32];
    HB_TRACE(HB_TR_DEBUG, ("letoFlush(%p)", pArea ));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( !letoConnPool[pTable->uiConnection].bTransActive )
@@ -1475,7 +1295,7 @@ static ERRCODE letoGetValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
       case HB_FT_PICTURE:
       case HB_FT_OLE:
       {
-         if( ( pArea->uiUpdated & 1 ) || pArea->area.fEof || ( pTable->pRecord[ pTable->pFieldOffset[ uiIndex ] ] == ' ' ) )
+         if( ( pTable->uiUpdated & 1 ) || pArea->area.fEof || ( pTable->pRecord[ pTable->pFieldOffset[ uiIndex ] ] == ' ' ) )
             hb_itemPutC( pItem, "" );
          else
          {
@@ -1550,12 +1370,12 @@ static ERRCODE letoPutRec( LETOAREAP pArea, BYTE * pBuffer )
 {
    LETOTABLE * pTable = pArea->pTable;
 
-   if( pArea->fShared && !pArea->fFLocked && !pTable->fRecLocked )
+   if( pTable->fShared && !pArea->fFLocked && !pTable->fRecLocked )
    {
       commonError( pArea, EG_UNLOCKED, EDBF_UNLOCKED, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   else if( pArea->fReadonly )
+   else if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
@@ -1568,7 +1388,7 @@ static ERRCODE letoPutRec( LETOAREAP pArea, BYTE * pBuffer )
             return FAILURE;
       }
       memcpy( pTable->pRecord, pBuffer, pTable->uiRecordLen );
-      pArea->uiUpdated |= 2;
+      pTable->uiUpdated |= 2;
       memset( pTable->pFieldUpd, 1, pArea->area.uiFieldCount * sizeof( USHORT ) );
    }
    return SUCCESS;
@@ -1587,16 +1407,16 @@ static ERRCODE leto_PutMemoValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pIte
    ULONG ulLen;
    LETOCONNECTION * pConnection = letoConnPool + pTable->uiConnection;
 
-   if( pArea->uiUpdated && !pConnection->bTransActive )
+   if( pTable->uiUpdated && !pConnection->bTransActive )
       leto_PutRec( pArea, FALSE );
 
    pTable->pRecord[ pTable->pFieldOffset[ uiIndex ] ] = (ulLenMemo)? '!' : ' ';
    ulLen = ulLenMemo;
    szData = (char*) hb_xgrab( ulLen + 36 );
 
-   if( ( pArea->uiUpdated & 1 ) && pConnection->bTransActive )
+   if( ( pTable->uiUpdated & 1 ) && pConnection->bTransActive )
    {
-      pArea->uiUpdated &= ( !1 );
+      pTable->uiUpdated &= ( !1 );
       if( LetoCheckServerVer( pConnection, 100 ) )
          sprintf( szData+4,"memo;%lu;add;%lu;%d;", pTable->hTable, pTable->ulRecNo, uiIndex+1 );
       else
@@ -1662,12 +1482,12 @@ static ERRCODE letoPutValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
    if( !uiIndex || uiIndex > pArea->area.uiFieldCount )
       return FAILURE;
 
-   if( pArea->fShared && !pArea->fFLocked && !pTable->fRecLocked )
+   if( pTable->fShared && !pArea->fFLocked && !pTable->fRecLocked )
    {
       commonError( pArea, EG_UNLOCKED, EDBF_UNLOCKED, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   else if( pArea->fReadonly )
+   else if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
@@ -2002,7 +1822,7 @@ static ERRCODE letoPutValue( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
       return FAILURE;
    }
 
-   pArea->uiUpdated |= 2;
+   pTable->uiUpdated |= 2;
    *(pTable->pFieldUpd+uiIndex) = 1;
 
    return SUCCESS;
@@ -2014,12 +1834,12 @@ static ERRCODE letoRecall( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoRecall(%p)", pArea));
 
-   if( pArea->fShared && !pArea->fFLocked && !pTable->fRecLocked )
+   if( pTable->fShared && !pArea->fFLocked && !pTable->fRecLocked )
    {
       commonError( pArea, EG_UNLOCKED, EDBF_UNLOCKED, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   else if( pArea->fReadonly )
+   else if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
@@ -2028,10 +1848,10 @@ static ERRCODE letoRecall( LETOAREAP pArea )
 //   sprintf( szData,"del;02;%d;%lu;\r\n", pTable->hTable, pTable->ulRecNo );
 //   if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
 
-   if( ( pArea->uiUpdated & 4 ) || pTable->fDeleted )
+   if( ( pTable->uiUpdated & 4 ) || pTable->fDeleted )
    {
       pTable->fDeleted = 0;
-      pArea->uiUpdated |= 4;
+      pTable->uiUpdated |= 4;
    }
    return SUCCESS;
 }
@@ -2107,7 +1927,7 @@ static ERRCODE letoRecInfo( LETOAREAP pArea, PHB_ITEM pRecID, USHORT uiInfoType,
       {
          if( ulRecNo != 0 && ulRecNo != pTable->ulRecNo )
          {
-            if( !pArea->fShared || pArea->fFLocked || leto_IsRecLocked( pArea, ulRecNo ) )
+            if( !pTable->fShared || pArea->fFLocked || leto_IsRecLocked( pArea, ulRecNo ) )
             {
                hb_itemPutL( pInfo, TRUE );
             }
@@ -2139,7 +1959,7 @@ static ERRCODE letoRecInfo( LETOAREAP pArea, PHB_ITEM pRecID, USHORT uiInfoType,
          break;
 
       case DBRI_UPDATED:
-         hb_itemPutL( pInfo, ulRecNo == pTable->ulRecNo && pArea->uiUpdated );
+         hb_itemPutL( pInfo, ulRecNo == pTable->ulRecNo && pTable->uiUpdated );
          break;
 
       case DBRI_RAWRECORD:
@@ -2206,7 +2026,7 @@ static ERRCODE letoRecNo( LETOAREAP pArea, ULONG * ulRecNo )
    LETOTABLE * pTable = pArea->pTable;
    HB_TRACE(HB_TR_DEBUG, ("letoRecNo(%p, %p)", pArea, ulRecNo));
 
-   if( pArea->uiUpdated & 1 )
+   if( pTable->uiUpdated & 1 )
       leto_PutRec( pArea, FALSE );
 
    if( pArea->lpdbPendingRel )
@@ -2287,12 +2107,12 @@ static ERRCODE letoClose( LETOAREAP pArea )
    LETOTABLE * pTable = pArea->pTable;
    HB_TRACE(HB_TR_DEBUG, ("letoClose(%p)", pArea));
 
-   if( pArea->uiUpdated )
+   if( pTable && pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    pArea->lpdbPendingRel = NULL;
 
-   if( LetoDbClose( pTable ) )
+   if( !LetoDbCloseTable( pTable ) )
    {
       /* Free all filenames */
       if( pArea->szDataFileName )
@@ -2510,7 +2330,7 @@ static ERRCODE letoCreate( LETOAREAP pArea, LPDBOPENINFO pCreateInfo )
       pField++;
    }
 
-   pTable = LetoDbCreate( pConnection, szFile, (char*)pCreateInfo->atomAlias, szData, pCreateInfo->uiArea );
+   pTable = LetoDbCreateTable( pConnection, szFile, (char*)pCreateInfo->atomAlias, szData, pCreateInfo->uiArea );
    hb_xfree( szData );
 
    if ( !pTable )
@@ -2583,11 +2403,11 @@ static ERRCODE letoInfo( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
          break;
 
       case DBI_ISREADONLY:
-         hb_itemPutL( pItem, pArea->fReadonly );
+         hb_itemPutL( pItem, pTable->fReadonly );
          break;
 
       case DBI_SHARED:
-         hb_itemPutL( pItem, pArea->fShared );
+         hb_itemPutL( pItem, pTable->fShared );
          break;
 
       case DBI_MEMOEXT:
@@ -2643,7 +2463,7 @@ static ERRCODE letoInfo( LETOAREAP pArea, USHORT uiIndex, PHB_ITEM pItem )
 
       case DBI_LASTUPDATE:
 /*
-         if( pArea->uiUpdated )
+         if( pTable->uiUpdated )
          {
             int iYear, iMonth, iDay;
             hb_dateToday( &iYear, &iMonth, &iDay );
@@ -2726,7 +2546,7 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
 
       pArea->szDataFileName = hb_strdup( (char *) ( pOpenInfo->abName ) );
 
-      pTable = LetoDbOpen( pConnection, szFile, (char*)pOpenInfo->atomAlias, 
+      pTable = LetoDbOpenTable( pConnection, szFile, (char*)pOpenInfo->atomAlias, 
             pOpenInfo->fShared, pOpenInfo->fReadonly, 
             (pOpenInfo->cdpId)? (char*)pOpenInfo->cdpId:"", pOpenInfo->uiArea );
    }
@@ -2748,7 +2568,7 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
       ptr ++;
       pArea->szDataFileName = hb_strndup( (char *) ( pOpenInfo->abName + 1 ), ptr - pOpenInfo->abName - 2 );
 
-      pTable = LetoDbOpen( pConnection, (char*) pOpenInfo->abName, NULL, 0, 0, "", 0 );
+      pTable = LetoDbOpenTable( pConnection, (char*) pOpenInfo->abName, NULL, 0, 0, "", 0 );
    }
 
    if( !pTable )
@@ -2763,8 +2583,6 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
    hb_strLower( pArea->szDataFileName, strlen(pArea->szDataFileName) );
 
    pArea->pTagCurrent    = NULL;
-   pArea->fShared        = pOpenInfo->fShared;
-   pArea->fReadonly      = pOpenInfo->fReadonly;
    if( pOpenInfo->cdpId )
    {
       pArea->area.cdPage = hb_cdpFind( (char *) pOpenInfo->cdpId );
@@ -2851,7 +2669,7 @@ static ERRCODE letoPack( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoPack(%p)", pArea));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( letoConnPool[pTable->uiConnection].bTransActive )
@@ -2859,12 +2677,12 @@ static ERRCODE letoPack( LETOAREAP pArea )
       commonError( pArea, EG_SYNTAX, 1031, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   if( pArea->fReadonly )
+   if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   if( pArea->fShared )
+   if( pTable->fShared )
    {
       commonError( pArea, EG_SHARED, EDBF_SHARED, 0, NULL, 0, NULL );
       return FAILURE;
@@ -3000,7 +2818,7 @@ static ERRCODE letoZap( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoZap(%p)", pArea));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( letoConnPool[pTable->uiConnection].bTransActive )
@@ -3008,12 +2826,12 @@ static ERRCODE letoZap( LETOAREAP pArea )
       commonError( pArea, EG_SYNTAX, 1031, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   if( pArea->fReadonly )
+   if( pTable->fReadonly )
    {
       commonError( pArea, EG_READONLY, EDBF_READONLY, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   if( pArea->fShared )
+   if( pTable->fShared )
    {
       commonError( pArea, EG_SHARED, EDBF_SHARED, 0, NULL, 0, NULL );
       return FAILURE;
@@ -3106,7 +2924,7 @@ static ERRCODE letoOrderListAdd( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListAdd(%p, %p)", pArea, pOrderInfo));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    szBagName = leto_RemoveIpFromPath( hb_itemGetCPtr( pOrderInfo->atomBagName ) );
@@ -3164,7 +2982,7 @@ static ERRCODE letoOrderListClear( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListClear(%p)", pArea));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( pTagInfo )
@@ -3263,7 +3081,7 @@ static ERRCODE letoOrderListFocus( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListFocus(%p, %p)", pArea, pOrderInfo));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
    if( !pArea->pTagCurrent )
       pOrderInfo->itmResult = hb_itemPutCL( pOrderInfo->itmResult, "", 0 );
@@ -3320,7 +3138,7 @@ static ERRCODE letoOrderListRebuild( LETOAREAP pArea )
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListRebuild(%p)", pArea));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -3349,7 +3167,7 @@ static ERRCODE letoOrderCreate( LETOAREAP pArea, LPDBORDERCREATEINFO pOrderInfo 
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderCreate(%p, %p)", pArea, pOrderInfo));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    szKey = hb_itemGetCPtr( pOrderInfo->abExpr );
@@ -3506,7 +3324,7 @@ static ERRCODE letoOrderDestroy( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
    HB_TRACE(HB_TR_DEBUG, ("letoOrderDestroy(%p, %p)", pArea, pOrderInfo));
    HB_SYMBOL_UNUSED( pOrderInfo );
 
-   if( pArea->uiUpdated )
+   if( pArea->pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    return SUCCESS;
@@ -3827,7 +3645,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
             }
 
             pArea->lpdbPendingRel = NULL;
-            if( pArea->uiUpdated )
+            if( pTable->uiUpdated )
                leto_PutRec( pArea, FALSE );
 
             if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -3880,7 +3698,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
          char * ptr;
 
          pArea->lpdbPendingRel = NULL;
-         if( pArea->uiUpdated )
+         if( pTable->uiUpdated )
             leto_PutRec( pArea, FALSE );
 
          if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -3922,7 +3740,7 @@ static ERRCODE letoOrderInfo( LETOAREAP pArea, USHORT uiIndex, LPDBORDERINFO pOr
       case DBOI_SKIPREGEXBACK:
       {
          pArea->lpdbPendingRel = NULL;
-         if( pArea->uiUpdated )
+         if( pTable->uiUpdated )
             leto_PutRec( pArea, FALSE );
 
          if( pTagInfo && pOrderInfo->itmNewVal && HB_IS_STRING( pOrderInfo->itmNewVal ) )
@@ -4261,7 +4079,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
 
    HB_TRACE(HB_TR_DEBUG, ("letoRawLock(%p, %hu, %lu)", pArea, uiAction, ulRecNo));
 
-   if( pArea->uiUpdated )
+   if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
    if( pArea->lpdbPendingRel )
@@ -4274,7 +4092,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
    {
       case REC_LOCK:
          leto_ClearBuffers( pArea );
-         if( !pArea->fShared || pArea->fFLocked || ( ulRecNo == pTable->ulRecNo ? pTable->fRecLocked : leto_IsRecLocked(pArea, ulRecNo) ) )
+         if( !pTable->fShared || pArea->fFLocked || ( ulRecNo == pTable->ulRecNo ? pTable->fRecLocked : leto_IsRecLocked(pArea, ulRecNo) ) )
             return SUCCESS;
 
          if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -4293,7 +4111,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
             commonError( pArea, EG_SYNTAX, 1031, 0, NULL, 0, NULL );
             return FAILURE;
          }
-         if( !pArea->fShared || pArea->fFLocked || ( ulRecNo == pTable->ulRecNo ? !pTable->fRecLocked : !leto_IsRecLocked(pArea, ulRecNo) ) )
+         if( !pTable->fShared || pArea->fFLocked || ( ulRecNo == pTable->ulRecNo ? !pTable->fRecLocked : !leto_IsRecLocked(pArea, ulRecNo) ) )
             return SUCCESS;
 
          if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -4307,7 +4125,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
 
       case FILE_LOCK:
          leto_ClearBuffers( pArea );
-         if( !pArea->fShared || pArea->fFLocked )
+         if( !pTable->fShared || pArea->fFLocked )
             return SUCCESS;
 
          if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -4325,7 +4143,7 @@ static ERRCODE letoRawLock( LETOAREAP pArea, USHORT uiAction, ULONG ulRecNo )
             commonError( pArea, EG_SYNTAX, 1031, 0, NULL, 0, NULL );
             return FAILURE;
          }
-         if( !pArea->fShared )
+         if( !pTable->fShared )
             return SUCCESS;
 
          if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
@@ -4893,7 +4711,7 @@ HB_FUNC( LETO ) { ; }
 static ERRCODE leto_UpdArea( AREAP pArea, void * p )
 {
    if( leto_CheckAreaConn( pArea, ( LETOCONNECTION * ) p ) &&
-       ( (LETOAREAP) pArea )->uiUpdated )
+       ( (LETOAREAP) pArea )->pTable->uiUpdated )
    {
       leto_PutRec( (LETOAREAP)pArea, FALSE );
    }
@@ -4903,7 +4721,7 @@ static ERRCODE leto_UpdArea( AREAP pArea, void * p )
 static ERRCODE leto_UnLockRec( AREAP pArea, void * p )
 {
    if( leto_CheckAreaConn( pArea, ( LETOCONNECTION * ) p ) &&
-       ( (LETOAREAP) pArea )->uiUpdated )
+       ( (LETOAREAP) pArea )->pTable->uiUpdated )
    {
       ( (LETOAREAP) pArea )->pTable->fRecLocked = 0;
    }
@@ -4913,9 +4731,9 @@ static ERRCODE leto_UnLockRec( AREAP pArea, void * p )
 static ERRCODE leto_ClearUpd( AREAP pArea, void * p )
 {
    if( leto_CheckAreaConn( pArea, ( LETOCONNECTION * ) p ) &&
-       ( (LETOAREAP) pArea )->uiUpdated )
+       ( (LETOAREAP) pArea )->pTable->uiUpdated )
    {
-      leto_SetUpdated( (LETOAREAP)pArea, 0);
+      leto_SetUpdated( ( ( LETOAREAP ) pArea)->pTable, 0);
       letoGoTo( (LETOAREAP)pArea, ( ( LETOAREAP ) pArea)->pTable->ulRecNo );
    }
    return 0;
@@ -5129,7 +4947,7 @@ HB_FUNC( LETO_GROUPBY )
 
    if ( leto_CheckArea( pArea ) && szGroup && HB_ISCHAR( 2 ) )
    {
-      if( pArea->uiUpdated )
+      if( pTable->uiUpdated )
          leto_PutRec( pArea, FALSE );
 
       szField = hb_parc( 2 );
@@ -5259,7 +5077,7 @@ HB_FUNC( LETO_SUM )
 
    if ( leto_CheckArea( pArea ) && HB_ISCHAR( 1 ) )
    {
-      if( pArea->uiUpdated )
+      if( pTable->uiUpdated )
          leto_PutRec( pArea, FALSE );
 
       szField = hb_parc( 1 );
@@ -5346,7 +5164,7 @@ HB_FUNC( LETO_COMMIT )
       {
          commonError( pArea, EG_SYNTAX, 1031, 0, NULL, 0, NULL );
       }
-      else if( pArea->uiUpdated )
+      else if( pTable->uiUpdated )
       {
          leto_PutRec( pArea, TRUE );
          pArea->fFLocked = FALSE;
@@ -5431,8 +5249,8 @@ HB_FUNC( LETO_ISFLTOPTIM )
 HB_FUNC( LETO_SETFASTAPPEND )
 {
    BOOL b = ( HB_ISNIL(1) )? 1 : hb_parl( 1 );
-   hb_retl( s_bFastAppend );
-   s_bFastAppend = b;
+
+   hb_retl( LetoSetFastAppend( b ) );
 }
 
 LETOCONNECTION * leto_getConnection( int iParam )

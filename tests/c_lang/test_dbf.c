@@ -48,7 +48,7 @@ void main( int argc, char *argv[] )
       printf( "Connected!\r\n" );
       printf( "%s\r\n", LetoGetServerVer( pConnection ) );
 
-      pTable = LetoDbCreate( pConnection, "/test1", "test1", 
+      pTable = LetoDbCreateTable( pConnection, "/test1", "test1", 
          "NAME;C;10;0;NUM;N;4;0;INFO;C;32;0;DINFO;D;8;0;", 0 );
       if( pTable )
       {
@@ -85,7 +85,47 @@ void main( int argc, char *argv[] )
                printf( "LetoDbFieldDec error\r\n" );
          }
 
-         LetoDbClose( pTable );
+         printf( "Append blank record - " );
+         if( !LetoDbAppend( pTable, 0 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+
+         printf( "Set first field - " );
+         if( !LetoDbPutField( pTable, 1, "Kirill", 6 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+
+         printf( "Set second field - " );
+         if( !LetoDbPutField( pTable, 2, "56", 2 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+
+         printf( "Set third field - " );
+         if( !LetoDbPutField( pTable, 3, "A first record", 14 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+
+         printf( "Set forth field - " );
+         if( !LetoDbPutField( pTable, 4, "20131228", 8 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+
+         printf( "Put record - " );
+         if( !LetoDbPutRecord( pTable, 0 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+
+         printf( "Close table - " );
+         if( !LetoDbCloseTable( pTable ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
       }
       else
          printf( "Can not create the test1.dbf\r\n" );
