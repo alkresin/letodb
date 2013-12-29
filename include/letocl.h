@@ -62,6 +62,8 @@
 #endif
 
 #define HB_MAX_FILE_EXT       10
+#define LETO_MAX_TAGNAME      10     /* Max len of tag name */
+#define LETO_MAX_EXP         256     /* Max len of KEY/FOR expression */
 
 /* Field types from hbapirdd.h */
 
@@ -98,6 +100,15 @@
 #define HB_FT_BLOB            19    /* "W" */
 #define HB_FT_OLE             20    /* "G" */
 
+#define LETO_INDEX_UNIQ       1
+#define LETO_INDEX_ALL        2
+#define LETO_INDEX_REST       4
+#define LETO_INDEX_DESC       8
+#define LETO_INDEX_CUST      16
+#define LETO_INDEX_ADD       32
+#define LETO_INDEX_TEMP      64
+#define LETO_INDEX_FILT     128
+
 HB_EXTERN_BEGIN
 
 typedef struct _CDPSTRU
@@ -124,6 +135,33 @@ typedef struct _LETOFIELD
    unsigned int  uiLen;
    unsigned int  uiDec;
 } LETOFIELD;
+
+typedef struct _LETOTAGINFO
+{
+   char *      BagName;
+   char *      TagName;
+   char *      KeyExpr;
+   char *      ForExpr;
+   unsigned int UniqueKey;
+   unsigned char KeyType;
+   unsigned int KeySize;
+   unsigned int uiTag;
+   unsigned int nField;           /* Field number for simple (one field) key expersion */
+   char *      pTopScopeAsString;
+   char *      pBottomScopeAsString;
+   int         iTopScopeAsString;
+   int         iBottomScopeAsString;
+   unsigned int UsrAscend;        /* user settable ascending/descending order flag */
+   unsigned int Custom;           /* user settable custom order flag */
+
+   LETOBUFFER  Buffer;           /* seek buffer */
+   unsigned int uiBufSize;        /* records count in buffer */
+   unsigned int uiRecInBuf;       /* current records in buffer*/
+
+   void *      pExtra;
+
+   struct _LETOTAGINFO * pNext;
+} LETOTAGINFO;
 
 typedef struct _LETOTABLE
 {
@@ -165,6 +203,8 @@ typedef struct _LETOTABLE
    unsigned int  uiSkipBuf;           /* skip buffer size */
    long          lLastUpdate;         /* from dbf header: last update */
    int           iBufRefreshTime;
+
+   LETOTAGINFO * pTagInfo;
 
 } LETOTABLE;
 
@@ -250,6 +290,7 @@ unsigned int LetoDbSkip( LETOTABLE * pTable, long lToSkip, char * szTag );
 unsigned int LetoDbPutRecord( LETOTABLE * pTable, unsigned int bCommit );
 unsigned int LetoDbPutField( LETOTABLE * pTable, unsigned int uiIndex, char * szValue, unsigned int uiLen );
 unsigned int LetoDbAppend( LETOTABLE * pTable, unsigned int fUnLockAll );
+unsigned int LetoDbOrderCreate( LETOTABLE * pTable, char * szBagName, char * szTag, char * szKey, unsigned char bType, unsigned int uiFlags, char * szFor, char * szWhile, unsigned long ulNext );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );
@@ -301,3 +342,4 @@ unsigned long leto_BufRecNo( char * ptrBuf );
 void leto_setSkipBuf( LETOTABLE * pTable, const char * ptr, unsigned long ulDataLen, unsigned int uiRecInBuf );
 void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULONG ulLen );
 void leto_SetUpdated( LETOTABLE * pTable, USHORT uiUpdated );
+char * leto_ParseTagInfo( LETOTABLE * pTable, char * pBuffer );

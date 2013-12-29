@@ -790,6 +790,98 @@ void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULONG ulLe
    pConnection->ulRecsInTrans ++;
 }
 
+char * leto_ParseTagInfo( LETOTABLE * pTable, char * pBuffer )
+{
+   LETOTAGINFO * pTagInfo, * pTagNext;
+   USHORT uiCount;
+   int iOrders, iLen, i;
+   char szData[_POSIX_PATH_MAX];
+   char * ptr = pBuffer;
+
+   LetoGetCmdItem( &ptr, szData ); ptr ++;
+   sscanf( szData, "%d" , &iOrders );  
+
+   if( iOrders )
+   {
+      if( pTable->pTagInfo )
+      {
+         pTagInfo = pTable->pTagInfo;
+         while( pTagInfo->pNext )
+            pTagInfo = pTagInfo->pNext;
+         pTagInfo->pNext = (LETOTAGINFO *) malloc( sizeof(LETOTAGINFO) );
+         pTagInfo = pTagInfo->pNext;
+      }
+      else
+      {
+         pTagInfo = pTable->pTagInfo = (LETOTAGINFO *) malloc( sizeof(LETOTAGINFO) );
+      }
+      for( uiCount = 1; uiCount <= iOrders; uiCount++ )
+      {
+         memset( pTagInfo, 0, sizeof(LETOTAGINFO) );
+
+         pTagInfo->uiTag = pTable->uiOrders + uiCount;
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
+         if( ( iLen = strlen(szData) ) != 0 )
+         {
+            pTagInfo->BagName = (char*) malloc( iLen+1 );
+            memcpy( pTagInfo->BagName, szData, iLen );
+            pTagInfo->BagName[iLen] = '\0';
+            for( i=0; i<iLen; i++ )
+               pTagInfo->BagName[i] = HB_TOLOWER(pTagInfo->BagName[i]);
+         }
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
+         if( ( iLen = strlen(szData) ) != 0 )
+         {
+            if( iLen > LETO_MAX_TAGNAME )
+               iLen = LETO_MAX_TAGNAME;
+            pTagInfo->TagName = (char*) malloc( iLen+1 );
+            memcpy( pTagInfo->TagName, szData, iLen );
+            pTagInfo->TagName[iLen] = '\0';
+            for( i=0; i<iLen; i++ )
+               pTagInfo->TagName[i] = HB_TOLOWER(pTagInfo->TagName[i]);
+         }
+         LetoGetCmdItem( &ptr, szData ); ptr ++;        
+         pTagInfo->KeyExpr = (char*) malloc( (iLen = strlen(szData))+1 );
+         memcpy( pTagInfo->KeyExpr, szData, iLen );
+         pTagInfo->KeyExpr[iLen] = '\0';
+
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
+         if( ( iLen = strlen(szData) ) != 0 )
+         {
+            pTagInfo->ForExpr = (char*) malloc( iLen+1 );
+            memcpy( pTagInfo->ForExpr, szData, iLen );
+            pTagInfo->ForExpr[iLen] = '\0';
+         }
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
+         pTagInfo->KeyType = szData[0];
+
+         LetoGetCmdItem( &ptr, szData ); ptr ++;
+         sscanf( szData, "%d", &iLen );
+         pTagInfo->KeySize = iLen;
+
+         if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
+         {
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
+            pTagInfo->UsrAscend = !( szData[0] == 'T' );
+
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
+            pTagInfo->UniqueKey = ( szData[0] == 'T' );
+
+            LetoGetCmdItem( &ptr, szData ); ptr ++;
+            pTagInfo->Custom = ( szData[0] == 'T' );
+         }
+         if( uiCount < iOrders )
+         {
+            pTagNext = (LETOTAGINFO *) malloc( sizeof(LETOTAGINFO) );
+            pTagInfo->pNext = pTagNext;
+            pTagInfo = pTagNext;
+         }
+      }
+      pTable->uiOrders += iOrders;
+   }
+   return ptr;
+}
+
 void LetoDbGotoEof( LETOTABLE * pTable )
 {
 
@@ -1643,13 +1735,7 @@ LETOTABLE * LetoDbOpenTable( LETOCONNECTION * pConnection, char * szFile, char *
 
    pTable->pRecord = ( unsigned char * ) malloc( pTable->uiRecordLen+1 );
 
-   ptrStart = ptr;
-   pTable->uiOrders = atoi( ptr );
-   while( *ptr != ';' ) ptr++; ptr++;
-
-   ptr = leto_SkipTagInfo( pConnection, ptr, pTable->uiOrders );
-   pTable->szTags = (char*) malloc( ptr - ptrStart );
-   memcpy( pTable->szTags, ptrStart, ptr - ptrStart );
+   ptr = leto_ParseTagInfo( pTable, ptr );
 
    leto_ParseRecord( pTable, ptr, 1 );
 
@@ -2350,6 +2436,118 @@ unsigned int LetoDbAppend( LETOTABLE * pTable, unsigned int fUnLockAll )
 
    return 0;
 }
+
+unsigned int LetoDbOrderCreate( LETOTABLE * pTable, char * szBagName, char * szTag, char * szKey, unsigned char bType, unsigned int uiFlags, char * szFor, char * szWhile, unsigned long ulNext )
+{
+   char szData[LETO_MAX_EXP*2], * ptr;
+   LETOTAGINFO * pTagInfo;
+   unsigned int ui, uiLen, uiLenab;
+
+   if( !( uiFlags & ( LETO_INDEX_REST | LETO_INDEX_CUST | LETO_INDEX_FILT ) )
+         && ( !szFor || !*szFor ) && ( !szWhile || !*szWhile ) && !ulNext )
+      uiFlags |= LETO_INDEX_ALL;
+
+   if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
+      sprintf( szData,"creat_i;%lu;%s;%s;%s;%c;%s;%s;%s;%lu;%lu;%s;%s;%s;%s;%s;%s;%s;\r\n", pTable->hTable,
+         (szBagName ? szBagName : ""), (szTag ? szTag : ""),
+         szKey, ((uiFlags & LETO_INDEX_UNIQ)? 'T' : 'F'), (szFor ? szFor : ""),
+         (szWhile ? szWhile : ""),
+         ((uiFlags & LETO_INDEX_ALL) ? "T" : "F"),
+         pTable->ulRecNo, ulNext, "",
+         ((uiFlags & LETO_INDEX_REST) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_DESC) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_CUST) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_ADD) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_TEMP) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_FILT) ? "T" : "F")
+         );
+   else
+      sprintf( szData,"creat;02;%lu;%s;%s;%s;%c;%s;%s;%s;%lu;%lu;%s;%s;%s;%s;%s;\r\n", pTable->hTable,
+         (szBagName ? szBagName : ""), (szTag ? szTag : ""),
+         szKey, ((uiFlags & LETO_INDEX_UNIQ)? 'T' : 'F'), (szFor ? szFor : ""),
+         (szWhile ? szWhile : ""),
+         ((uiFlags & LETO_INDEX_ALL) ? "T" : "F"),
+         pTable->ulRecNo, ulNext, "",
+         ((uiFlags & LETO_INDEX_REST) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_DESC) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_CUST) ? "T" : "F"),
+         ((uiFlags & LETO_INDEX_ADD) ? "T" : "F")
+         );
+       
+   if ( !leto_SendRecv( pTable, szData, 0, 0 ) )
+   {
+      s_iError = 1000;
+      return 1;
+   }
+   else if( *( ptr = leto_getRcvBuff() ) == '-' )
+   {
+      if( ptr[4] == ':' )
+         sscanf( ptr+5, "%u-%u-", &ui, &s_iError );
+      else
+         s_iError = 1021;
+      return 1;
+   }
+
+   pTagInfo = (LETOTAGINFO *) malloc( sizeof(LETOTAGINFO) );
+   memset( pTagInfo, 0, sizeof(LETOTAGINFO) );
+   if( pTable->pTagInfo )
+   {
+      LETOTAGINFO * pTagNext = pTable->pTagInfo;
+      while( pTagNext->pNext ) pTagNext = pTagNext->pNext;
+      pTagNext->pNext = pTagInfo;
+   }
+   else
+   {
+      pTable->pTagInfo = pTagInfo;
+   }
+
+   if( ( uiLenab = (szBagName)? strlen((char*)szBagName) : 0 ) != 0 )
+   {
+      pTagInfo->BagName = (char*) malloc( uiLenab+1 );
+      memcpy( pTagInfo->BagName, szBagName, uiLenab );
+      pTagInfo->BagName[uiLenab] = '\0';
+      for( ui=0; ui<uiLenab; ui++ )
+         pTagInfo->BagName[ui] = HB_TOLOWER(pTagInfo->BagName[ui]);
+   }
+   if( ( uiLen = (szTag)? strlen(szTag) : 0 ) != 0 )
+   {
+      if( uiLen > LETO_MAX_TAGNAME )
+         uiLen = LETO_MAX_TAGNAME;
+      pTagInfo->TagName = (char*) malloc( uiLen+1 );
+      memcpy( pTagInfo->TagName, szTag, uiLen );
+      pTagInfo->TagName[uiLen] = '\0';
+      for( ui=0; ui<uiLen; ui++ )
+         pTagInfo->TagName[ui] = HB_TOLOWER(pTagInfo->TagName[ui]);
+   }
+   else if( uiLenab )
+   {
+      pTagInfo->TagName = (char*) malloc( uiLenab+1 );
+      memcpy( pTagInfo->TagName, pTagInfo->BagName, uiLenab );
+      pTagInfo->TagName[uiLenab] = '\0';
+   }
+
+   pTagInfo->KeyExpr = (char*) malloc( (uiLen=strlen(szKey))+1 );
+   memcpy( pTagInfo->KeyExpr, szKey, uiLen );
+   pTagInfo->KeyExpr[uiLen] = '\0';
+
+   if( ( uiLen = strlen( szFor ) ) != 0 )
+   {
+      pTagInfo->ForExpr = (char*) malloc( uiLen+1 );
+      memcpy( pTagInfo->ForExpr, szFor, uiLen );
+      pTagInfo->ForExpr[uiLen] = '\0';
+   }
+   pTagInfo->KeyType = bType;
+   pTagInfo->uiTag = pTable->uiOrders;
+
+   pTagInfo->UsrAscend = !(uiFlags & LETO_INDEX_DESC);
+   pTagInfo->UniqueKey = (uiFlags & LETO_INDEX_UNIQ);
+   pTagInfo->Custom = (uiFlags & LETO_INDEX_CUST);
+
+   pTable->uiOrders ++;
+
+   return 0;
+}
+
 
 char * LetoMgGetInfo( LETOCONNECTION * pConnection )
 {

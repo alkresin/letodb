@@ -133,6 +133,7 @@ Field NAME, NUM, INFO, DINFO
       ? i, ordKey(i)
    ENDDO
 
+   dbCloseAll()
    ?
    ? "Press any key to finish..."
    Inkey(0)
