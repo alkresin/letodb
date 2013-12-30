@@ -55,6 +55,8 @@ void main( int argc, char *argv[] )
          unsigned int ui, uiFields, uiRet;
          unsigned long ulRecCount;
          char szRet[16];
+         char * pNames[] = { "Petr", "Ivan", "Alexander", "Pavel", "Alexey", "Fedor",
+            "Konstantin", "Vladimir", "Nikolay", "Andrey", "Dmitry", "Sergey" };
 
          printf( "test1.dbf has been created.\r\n" );
 
@@ -69,57 +71,47 @@ void main( int argc, char *argv[] )
          {
             if( !LetoDbFieldName( pTable, ui, szRet ) )
                printf( "   %-12s", szRet );
-            else
-               printf( "LetoDbFieldName error\r\n" );
             if( !LetoDbFieldType( pTable, ui, &uiRet ) )
                printf( "%d", uiRet );
-            else
-               printf( "LetoDbFieldType error\r\n" );
             if( !LetoDbFieldLen( pTable, ui, &uiRet ) )
                printf( "\t%d", uiRet );
-            else
-               printf( "LetoDbFieldLen error\r\n" );
             if( !LetoDbFieldDec( pTable, ui, &uiRet ) )
                printf( "\t%d\r\n", uiRet );
-            else
-               printf( "LetoDbFieldDec error\r\n" );
          }
 
-         printf( "Append blank record - " );
-         if( !LetoDbAppend( pTable, 0 ) )
+         for( ui=1; ui <= 12; ui++ )
+         {
+            printf( "Append record - " );
+            LetoDbAppend( pTable, 0 );
+
+            LetoDbPutField( pTable, 1, pNames[ui-1], strlen(pNames[ui-1]) );
+
+            sprintf( szRet, "%d", ui+2000 );
+            LetoDbPutField( pTable, 2, szRet, strlen(szRet) );
+
+            sprintf( szRet, "A record number %d", ui );
+            LetoDbPutField( pTable, 3, szRet, strlen(szRet) );
+
+            sprintf( szRet, "201312%d", ui+10 );
+            LetoDbPutField( pTable, 4, szRet, 8 );
+
+            if( !LetoDbPutRecord( pTable, 0 ) )
+               printf( "%d\r\n", ui );
+            else
+               printf( "error\r\n" );
+         }
+
+         printf( "Index creating (NAME) - " );
+         if( !LetoDbOrderCreate( pTable, NULL, "NAME", "NAME", 'C', 0, NULL, NULL, 0 ) )
+            printf( "Ok\r\n" );
+         else
+            printf( "error\r\n" );
+         printf( "Index creating (NUM) - " );
+         if( !LetoDbOrderCreate( pTable, NULL, "NUM", "Str(NUM,4)", 'C', 0, NULL, NULL, 0 ) )
             printf( "Ok\r\n" );
          else
             printf( "error\r\n" );
 
-         printf( "Set first field - " );
-         if( !LetoDbPutField( pTable, 1, "Kirill", 6 ) )
-            printf( "Ok\r\n" );
-         else
-            printf( "error\r\n" );
-
-         printf( "Set second field - " );
-         if( !LetoDbPutField( pTable, 2, "56", 2 ) )
-            printf( "Ok\r\n" );
-         else
-            printf( "error\r\n" );
-
-         printf( "Set third field - " );
-         if( !LetoDbPutField( pTable, 3, "A first record", 14 ) )
-            printf( "Ok\r\n" );
-         else
-            printf( "error\r\n" );
-
-         printf( "Set forth field - " );
-         if( !LetoDbPutField( pTable, 4, "20131228", 8 ) )
-            printf( "Ok\r\n" );
-         else
-            printf( "error\r\n" );
-
-         printf( "Put record - " );
-         if( !LetoDbPutRecord( pTable, 0 ) )
-            printf( "Ok\r\n" );
-         else
-            printf( "error\r\n" );
 
          printf( "Close table - " );
          if( !LetoDbCloseTable( pTable ) )

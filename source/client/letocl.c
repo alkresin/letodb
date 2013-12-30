@@ -1893,15 +1893,15 @@ unsigned int LetoDbPutField( LETOTABLE * pTable, unsigned int uiIndex, char * sz
    {
       unsigned int uiDot = 0;
       ptrv = szValue;
-      while( ((unsigned int)(ptrv-szValue)) < uiLen && *ptrv == ' ' ) ptrv ++;
-      if( ((unsigned int)(ptrv-szValue)) < uiLen )
+      while( ((unsigned int)((char*)ptrv-szValue)) < uiLen && *ptrv == ' ' ) ptrv ++;
+      if( ((unsigned int)((char*)ptrv-szValue)) < uiLen )
       {
-         while( ((unsigned int)(ptrv-szValue)) < uiLen )
+         while( ((unsigned int)((char*)ptrv-szValue)) < uiLen )
          {
             if( *ptrv == '.' )
             {
                uiDot = 1;
-               if( !pField->uiDec || szValue + uiLen - pField->uiDec - 1 != ptrv )
+               if( !pField->uiDec || szValue + uiLen - pField->uiDec - 1 != (char*)ptrv )
                   return 2;
             }
             else if( *ptrv < '0' || *ptrv > '9' )
@@ -2473,7 +2473,7 @@ unsigned int LetoDbOrderCreate( LETOTABLE * pTable, char * szBagName, char * szT
          ((uiFlags & LETO_INDEX_CUST) ? "T" : "F"),
          ((uiFlags & LETO_INDEX_ADD) ? "T" : "F")
          );
-       
+
    if ( !leto_SendRecv( pTable, szData, 0, 0 ) )
    {
       s_iError = 1000;
@@ -2530,7 +2530,7 @@ unsigned int LetoDbOrderCreate( LETOTABLE * pTable, char * szBagName, char * szT
    memcpy( pTagInfo->KeyExpr, szKey, uiLen );
    pTagInfo->KeyExpr[uiLen] = '\0';
 
-   if( ( uiLen = strlen( szFor ) ) != 0 )
+   if( ( uiLen = (szFor)? strlen((char*)szFor) : 0 ) != 0 )
    {
       pTagInfo->ForExpr = (char*) malloc( uiLen+1 );
       memcpy( pTagInfo->ForExpr, szFor, uiLen );

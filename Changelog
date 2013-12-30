@@ -6,6 +6,24 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2013-12-30 11:42 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * tests/c_lang/test_dbf.c
+    * test extended
+
+2013-12-30 10:56 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * source/client/letocl.c
+    ! Few warnings fixed.
+
+2013-12-30 10:22 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * include/rddleto.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * LetoDbOrderCreate() added, LETOTAGINFO moved from
+      rddleto.h to letocl.h and changed - a part of it, which
+      contains PHB_ITEMs, is placed in rddleto.h as
+      LETOTAGEXTRAINFO.
+
 2013-12-27 15:20 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
   * include/letocl.h
   * source/client/leto1.c
