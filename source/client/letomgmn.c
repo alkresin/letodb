@@ -536,7 +536,6 @@ HB_FUNC( LETO_MGGETTABLES )
 
 HB_FUNC( LETO_MGKILL )
 {
-   char szData[32];
 
    if( pCurrentConn )
    {

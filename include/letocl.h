@@ -64,6 +64,7 @@
 #define HB_MAX_FILE_EXT       10
 #define LETO_MAX_TAGNAME      10     /* Max len of tag name */
 #define LETO_MAX_EXP         256     /* Max len of KEY/FOR expression */
+#define LETO_MAX_KEY         256     /* Max len of key */
 
 /* Field types from hbapirdd.h */
 
@@ -206,6 +207,11 @@ typedef struct _LETOTABLE
 
    LETOTAGINFO * pTagInfo;
 
+   unsigned long * pLocksPos;         /* List of records locked */
+   unsigned long   ulLocksMax;        /* Number of records locked */
+   unsigned long   ulLocksAlloc;      /* Number of records locked (allocated) */
+   unsigned int    fFLocked;          /* TRUE if file is locked */
+
 } LETOTABLE;
 
 typedef struct _LETOCONNECTION_
@@ -270,13 +276,15 @@ char * LetoGetServerVer( LETOCONNECTION * pConnection );
 void LetoSetPath( LETOCONNECTION * pConnection, const char * szPath );
 unsigned int LetoSetFastAppend( unsigned int uiFApp );
 
-int LetoDbCloseTable( LETOTABLE * pTable );
+void LetoDbFreeTag( LETOTAGINFO * pTagInfo );
+unsigned int LetoDbCloseTable( LETOTABLE * pTable );
 LETOTABLE * LetoDbCreateTable( LETOCONNECTION * pConnection, char * szFile, char * szAlias, char * szFields, unsigned int uiArea );
 LETOTABLE * LetoDbOpenTable( LETOCONNECTION * pConnection, char * szFile, char * szAlias, int iShared, int iReadOnly, char * szCdp, unsigned int uiArea );
 unsigned int LetoDbBof( LETOTABLE * pTable );
 unsigned int LetoDbEof( LETOTABLE * pTable );
 unsigned int LetoDbGetField( LETOTABLE * pTable, unsigned int uiIndex, char * szRet, unsigned int * uiLen );
 unsigned int LetoDbRecCount( LETOTABLE * pTable, unsigned long * ulCount );
+unsigned int LetoDbRecNo( LETOTABLE * pTable, unsigned long * ulRecNo );
 unsigned int LetoDbFieldCount( LETOTABLE * pTable, unsigned int * uiCount );
 unsigned int LetoDbFieldName( LETOTABLE * pTable, unsigned int uiIndex, char * szName );
 unsigned int LetoDbFieldType( LETOTABLE * pTable, unsigned int uiIndex, unsigned int * uiType );
@@ -291,6 +299,15 @@ unsigned int LetoDbPutRecord( LETOTABLE * pTable, unsigned int bCommit );
 unsigned int LetoDbPutField( LETOTABLE * pTable, unsigned int uiIndex, char * szValue, unsigned int uiLen );
 unsigned int LetoDbAppend( LETOTABLE * pTable, unsigned int fUnLockAll );
 unsigned int LetoDbOrderCreate( LETOTABLE * pTable, char * szBagName, char * szTag, char * szKey, unsigned char bType, unsigned int uiFlags, char * szFor, char * szWhile, unsigned long ulNext );
+unsigned int LetoSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int bSoftSeek, unsigned int bFindLast );
+unsigned int LetoDbClearFilter( LETOTABLE * pTable );
+unsigned int LetoDbSetFilter( LETOTABLE * pTable, char * szFilter );
+unsigned int LetoDbCommit( LETOTABLE * pTable );
+unsigned int LetoDbIsRecLocked( LETOTABLE * pTable, unsigned long ulRecNo, unsigned int * uiRes );
+unsigned int LetoDbRecLock( LETOTABLE * pTable, unsigned long ulRecNo );
+unsigned int LetoDbRecUnLock( LETOTABLE * pTable, unsigned long ulRecNo );
+unsigned int LetoDbFileLock( LETOTABLE * pTable );
+unsigned int LetoDbFileUnLock( LETOTABLE * pTable );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );
@@ -343,3 +360,8 @@ void leto_setSkipBuf( LETOTABLE * pTable, const char * ptr, unsigned long ulData
 void leto_AddTransBuffer( LETOCONNECTION * pConnection, char * pData, ULONG ulLen );
 void leto_SetUpdated( LETOTABLE * pTable, USHORT uiUpdated );
 char * leto_ParseTagInfo( LETOTABLE * pTable, char * pBuffer );
+char * leto_AddKeyToBuf( char * szData, char * szKey, unsigned int uiKeyLen, unsigned long *pulLen );
+void leto_ClearSeekBuf( LETOTAGINFO * pTagInfo );
+void leto_ClearBuffers( LETOTABLE * pTable );
+unsigned int leto_IsRecLocked( LETOTABLE * pTable, unsigned long ulRecNo );
+void leto_AddRecLock( LETOTABLE * pTable, unsigned long ulRecNo );

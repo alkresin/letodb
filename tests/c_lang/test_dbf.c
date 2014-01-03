@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <conio.h>
 #include "letocl.h"
 
 static void setAddress( int argc, char *argv[], char * szAddr, int * iPort )
@@ -53,8 +54,8 @@ void main( int argc, char *argv[] )
       if( pTable )
       {
          unsigned int ui, uiFields, uiRet;
-         unsigned long ulRecCount;
-         char szRet[16];
+         unsigned long ulRecCount, ulRecNo;
+         char szRet[48];
          char * pNames[] = { "Petr", "Ivan", "Alexander", "Pavel", "Alexey", "Fedor",
             "Konstantin", "Vladimir", "Nikolay", "Andrey", "Dmitry", "Sergey" };
 
@@ -79,6 +80,7 @@ void main( int argc, char *argv[] )
                printf( "\t%d\r\n", uiRet );
          }
 
+         printf( "\r\n" );
          for( ui=1; ui <= 12; ui++ )
          {
             printf( "Append record - " );
@@ -101,7 +103,7 @@ void main( int argc, char *argv[] )
                printf( "error\r\n" );
          }
 
-         printf( "Index creating (NAME) - " );
+         printf( "\r\nIndex creating (NAME) - " );
          if( !LetoDbOrderCreate( pTable, NULL, "NAME", "NAME", 'C', 0, NULL, NULL, 0 ) )
             printf( "Ok\r\n" );
          else
@@ -112,12 +114,45 @@ void main( int argc, char *argv[] )
          else
             printf( "error\r\n" );
 
+         printf( "Go Top - " );
+         LetoDbGoTop( pTable, "NAME" );
 
-         printf( "Close table - " );
+         LetoDbRecNo( pTable, &ulRecNo );
+         uiRet = 10; LetoDbGetField( pTable, 1, szRet, &uiRet );
+         printf( "N: %d, %s /", ulRecNo, szRet );
+
+         uiRet = 4; LetoDbGetField( pTable, 2, szRet, &uiRet );
+         printf( " %s /", szRet );
+
+         uiRet = 32; LetoDbGetField( pTable, 3, szRet, &uiRet );
+         printf( " %s /", szRet );
+
+         uiRet = 8; LetoDbGetField( pTable, 4, szRet, &uiRet );
+         printf( " %s\r\n", szRet );
+
+         printf( "Skip 1 record - " );
+         LetoDbSkip( pTable, 1, "NAME" );
+
+         LetoDbRecNo( pTable, &ulRecNo );
+         uiRet = 10; LetoDbGetField( pTable, 1, szRet, &uiRet );
+         printf( "N: %d, %s /", ulRecNo, szRet );
+
+         uiRet = 4; LetoDbGetField( pTable, 2, szRet, &uiRet );
+         printf( " %s /", szRet );
+
+         uiRet = 32; LetoDbGetField( pTable, 3, szRet, &uiRet );
+         printf( " %s /", szRet );
+
+         uiRet = 8; LetoDbGetField( pTable, 4, szRet, &uiRet );
+         printf( " %s\r\n", szRet );
+
+         printf( "\r\nClose table - " );
          if( !LetoDbCloseTable( pTable ) )
             printf( "Ok\r\n" );
          else
             printf( "error\r\n" );
+
+         getch();
       }
       else
          printf( "Can not create the test1.dbf\r\n" );

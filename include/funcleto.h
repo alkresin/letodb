@@ -1,4 +1,4 @@
-/*  $Id: funcleto.h,v 1.28.2.23 2013/12/26 12:26:58 alkresin Exp $  */
+/*  $Id: funcleto.h,v 1.28.2.24 2014/01/01 15:24:47 ptsarenko Exp $  */
 
 /*
  * Harbour Project source code:
@@ -132,12 +132,6 @@
 
 #if !defined( HB_PFS )
    #define HB_PFS "l"
-#endif
-
-#if defined( HB_IO_WIN )
-   typedef HB_PTRDIFF LETO_FHANDLE;
-#else
-   typedef int LETO_FHANDLE;
 #endif
 
 #if ! defined( _POSIX_PATH_MAX )

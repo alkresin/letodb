@@ -90,21 +90,14 @@ typedef struct _LETOAREA_
    LPDBRELINFO lpdbPendingRel;   /* Pointer to parent rel struct */
 
    char *   szDataFileName;      /* Name of data file */
-   BOOL     fFLocked;            /* TRUE if file is locked */
 
    LETOTAGINFO * pTagCurrent;    /* current order */
-
-   ULONG *     pLocksPos;              /* List of records locked */
-   ULONG       ulLocksMax;             /* Number of records locked */
-   ULONG       ulLocksAlloc;           /* Number of records locked (allocated) */
 
 } LETOAREA;
 
 typedef LETOAREA * LETOAREAP;
 
 HB_EXTERN_END
-
-#define LETO_MAX_KEY        256     /* Max len of key */
 
 #if ! defined( HB_RDD_MAX_DRIVERNAME_LEN ) && defined( HARBOUR_MAX_RDD_DRIVERNAME_LENGTH )
    #define  HB_RDD_MAX_DRIVERNAME_LEN HARBOUR_MAX_RDD_DRIVERNAME_LENGTH
