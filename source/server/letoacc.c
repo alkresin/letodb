@@ -60,6 +60,12 @@
 #include "math.h"
 #include "srvleto.h"
 
+#if defined( HB_IO_WIN )
+   typedef HB_PTRDIFF LETO_FHANDLE;
+#else
+   typedef int LETO_FHANDLE;
+#endif
+
 /* EOL:  DOS - \r\n  Unix - \n,  \r = 13, \n = 10 */
 
 typedef struct

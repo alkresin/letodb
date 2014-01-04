@@ -1,0 +1,20 @@
+#
+# $Id: leto.hbp,v 1.1.2.1 2013/12/13 16:40:26 alkresin Exp $
+#
+
+#-env:__BM=yes
+
+# shared lib, dll or so
+-hbdyn
+-shared
+
+-inc
+-olib/letocl
+-iinclude
+-n -w -q0 -es2
+
+source/client/letocl.c
+
+source/common/blowfish.c
+source/common/common_c.c
+source/common/hbip.c
