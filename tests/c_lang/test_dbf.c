@@ -30,6 +30,26 @@ static void setAddress( int argc, char *argv[], char * szAddr, int * iPort )
    }
 }
 
+static void printRec( LETOTABLE * pTable )
+{
+   char szRet[48];
+   unsigned long ulRecNo;
+
+   LetoDbRecNo( pTable, &ulRecNo );
+   LetoDbGetField( pTable, 1, szRet, NULL );
+   printf( "N: %d, %s /", ulRecNo, szRet );
+
+   LetoDbGetField( pTable, 2, szRet, NULL );
+   printf( " %s /", szRet );
+
+   LetoDbGetField( pTable, 3, szRet, NULL );
+   printf( " %s /", szRet );
+
+   LetoDbGetField( pTable, 4, szRet, NULL );
+   printf( " %s\r\n", szRet );
+
+}
+
 void main( int argc, char *argv[] )
 {
    LETOCONNECTION * pConnection;
@@ -116,35 +136,15 @@ void main( int argc, char *argv[] )
 
          printf( "Go Top - " );
          LetoDbGoTop( pTable, "NAME" );
-
-         LetoDbRecNo( pTable, &ulRecNo );
-         uiRet = 10; LetoDbGetField( pTable, 1, szRet, &uiRet );
-         printf( "N: %d, %s /", ulRecNo, szRet );
-
-         uiRet = 4; LetoDbGetField( pTable, 2, szRet, &uiRet );
-         printf( " %s /", szRet );
-
-         uiRet = 32; LetoDbGetField( pTable, 3, szRet, &uiRet );
-         printf( " %s /", szRet );
-
-         uiRet = 8; LetoDbGetField( pTable, 4, szRet, &uiRet );
-         printf( " %s\r\n", szRet );
+         printRec( pTable );
 
          printf( "Skip 1 record - " );
          LetoDbSkip( pTable, 1, "NAME" );
+         printRec( pTable );
 
-         LetoDbRecNo( pTable, &ulRecNo );
-         uiRet = 10; LetoDbGetField( pTable, 1, szRet, &uiRet );
-         printf( "N: %d, %s /", ulRecNo, szRet );
-
-         uiRet = 4; LetoDbGetField( pTable, 2, szRet, &uiRet );
-         printf( " %s /", szRet );
-
-         uiRet = 32; LetoDbGetField( pTable, 3, szRet, &uiRet );
-         printf( " %s /", szRet );
-
-         uiRet = 8; LetoDbGetField( pTable, 4, szRet, &uiRet );
-         printf( " %s\r\n", szRet );
+         printf( "Seek \'Niko\'- " );
+         LetoDbSeek( pTable, "NAME", "Niko", 0, 0 );
+         printRec( pTable );
 
          printf( "\r\nClose table - " );
          if( !LetoDbCloseTable( pTable ) )

@@ -6,6 +6,16 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2014-01-04 10:05 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * LetoSeek() is renamed to LetoDbSeek(),
+      LetoDbGetField(): the forth parameter ( the pointer to length ) can be NULL now,
+      some cleanup
+  * tests/c_lang/test_dbf.c
+    * test extended
+
 2014-01-03 16:40 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
   * include/letocl.h
   * include/rddleto.h

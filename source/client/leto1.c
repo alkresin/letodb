@@ -687,13 +687,13 @@ static ERRCODE letoSeek( LETOAREAP pArea, BOOL bSoftSeek, PHB_ITEM pKey, BOOL bF
    LetoSetDeleted( (unsigned int) hb_setGetDeleted() );
    if( ( cType = leto_ItemType( pKey ) ) != pTagInfo->KeyType )
    {
-      if( LetoSeek( pTable, pTagInfo->TagName, NULL, 0, 0 ) )
+      if( LetoDbSeek( pTable, pTagInfo->TagName, NULL, 0, 0 ) )
          return FAILURE;
    }
    else
    {
       leto_KeyToStr( pArea, szKey, cType, pKey );
-      if( LetoSeek( pTable, pTagInfo->TagName, szKey, (unsigned int)bSoftSeek, (unsigned int)bFindLast ) )
+      if( LetoDbSeek( pTable, pTagInfo->TagName, szKey, (unsigned int)bSoftSeek, (unsigned int)bFindLast ) )
          return FAILURE;
    }
 
@@ -1780,26 +1780,7 @@ static ERRCODE letoRecId( LETOAREAP pArea, PHB_ITEM pRecNo )
    return errCode;
 }
 
-static ERRCODE letoSetFieldExtent( LETOAREAP pArea, USHORT uiFieldExtent )
-{
-   HB_TRACE(HB_TR_DEBUG, ("hb_letoSetFieldExtent(%p, %hu)", pArea, uiFieldExtent));
-
-   if( SUPER_SETFIELDEXTENT( ( AREAP ) pArea, uiFieldExtent ) == FAILURE )
-      return FAILURE;
-
-   /* Alloc field offsets array */
-   /*
-   if( uiFieldExtent )
-   {
-      pTable->pFieldOffset = ( USHORT * ) hb_xgrab( uiFieldExtent * sizeof( USHORT ) );
-      memset( pTable->pFieldOffset, 0, uiFieldExtent * sizeof( USHORT ) );
-      pTable->pFieldUpd = ( USHORT * ) hb_xgrab( uiFieldExtent * sizeof( USHORT ) );
-      memset( pTable->pFieldUpd, 0, uiFieldExtent * sizeof( USHORT ) );
-   }
-   */
-   return SUCCESS;
-}
-
+#define  letoSetFieldExtent        NULL
 #define  letoAlias                 NULL
 
 static void leto_FreeTag( LETOTAGINFO * pTagInfo )

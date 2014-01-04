@@ -1951,15 +1951,20 @@ unsigned int LetoDbEof( LETOTABLE * pTable )
 
 unsigned int LetoDbGetField( LETOTABLE * pTable, unsigned int uiIndex, char * szRet, unsigned int * uiLen )
 {
+
+   unsigned int uiFldLen;
+
    if( !uiIndex || uiIndex > pTable->uiFieldExtent )
       return 1;
 
    uiIndex --;
-   if( !*uiLen || *uiLen > (pTable->pFields+uiIndex)->uiLen )
-      *uiLen = (pTable->pFields+uiIndex-1)->uiLen;
+   if( !uiLen )
+      uiFldLen = (pTable->pFields+uiIndex)->uiLen;
+   else if( !*uiLen || *uiLen > (pTable->pFields+uiIndex)->uiLen )
+      *uiLen = uiFldLen = (pTable->pFields+uiIndex)->uiLen;
 
-   memcpy( szRet, pTable->pRecord + pTable->pFieldOffset[uiIndex], *uiLen );
-   szRet[ *uiLen ] = '\0';
+   memcpy( szRet, pTable->pRecord + pTable->pFieldOffset[uiIndex], uiFldLen );
+   szRet[ uiFldLen ] = '\0';
 
    return 0;
 }
@@ -2360,7 +2365,7 @@ unsigned int LetoDbSkip( LETOTABLE * pTable, long lToSkip, char * szTag )
    return 0;
 }
 
-unsigned int LetoSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int bSoftSeek, unsigned int bFindLast )
+unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int bSoftSeek, unsigned int bFindLast )
 {
    char szData[LETO_MAX_KEY+LETO_MAX_TAGNAME+56], * pData;
    LETOCONNECTION * pConnection = letoConnPool + pTable->uiConnection;
