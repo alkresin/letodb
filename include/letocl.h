@@ -308,6 +308,9 @@ unsigned int LetoDbRecLock( LETOTABLE * pTable, unsigned long ulRecNo );
 unsigned int LetoDbRecUnLock( LETOTABLE * pTable, unsigned long ulRecNo );
 unsigned int LetoDbFileLock( LETOTABLE * pTable );
 unsigned int LetoDbFileUnLock( LETOTABLE * pTable );
+unsigned int LetoDbPack( LETOTABLE * pTable );
+unsigned int LetoDbZap( LETOTABLE * pTable );
+unsigned int LetoDbReindex( LETOTABLE * pTable );
 
 long int leto_RecvFirst( LETOCONNECTION * pConnection );
 long int leto_Recv( LETOCONNECTION * pConnection );

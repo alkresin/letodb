@@ -2981,6 +2981,58 @@ HB_EXPORT unsigned int LetoDbFileUnLock( LETOTABLE * pTable )
    return 0;
 }
 
+HB_EXPORT unsigned int LetoDbPack( LETOTABLE * pTable )
+{
+   char szData[32];
+
+   if( letoConnPool[pTable->uiConnection].bTransActive || pTable->fReadonly || pTable->fShared )
+   {
+      s_iError = 1;
+      return 1;
+   }
+
+   sprintf( szData,"pack;%lu;\r\n", pTable->hTable );
+   if ( !leto_SendRecv( pTable, szData, 0, 1021 ) ) return 2;
+
+   return 0;
+}
+
+HB_EXPORT unsigned int LetoDbZap( LETOTABLE * pTable )
+{
+   char szData[32];
+
+   if( letoConnPool[pTable->uiConnection].bTransActive || pTable->fReadonly || pTable->fShared )
+   {
+      s_iError = 1;
+      return 1;
+   }
+
+   sprintf( szData,"zap;%lu;\r\n", pTable->hTable );
+   if ( !leto_SendRecv( pTable, szData, 0, 1021 ) ) return 2;
+
+   return 0;
+}
+
+HB_EXPORT unsigned int LetoDbReindex( LETOTABLE * pTable )
+{
+   char szData[32];
+
+   if( letoConnPool[pTable->uiConnection].bTransActive || pTable->fReadonly || pTable->fShared )
+   {
+      s_iError = 1;
+      return 1;
+   }
+
+   if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
+      sprintf( szData,"ord;%lu;03;\r\n", pTable->hTable );
+   else
+      sprintf( szData,"ord;03;%lu;\r\n", pTable->hTable );
+
+   if ( !leto_SendRecv( pTable, szData, 0, 1021 ) ) return 2;
+
+   return 0;
+}
+
 HB_EXPORT char * LetoMgGetInfo( LETOCONNECTION * pConnection )
 {
    if( leto_DataSendRecv( pConnection, "mgmt;00;\r\n", 0 ) )

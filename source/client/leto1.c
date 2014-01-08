@@ -2364,7 +2364,6 @@ static ERRCODE letoSysName( LETOAREAP pArea, BYTE * pBuffer )
 static ERRCODE letoPack( LETOAREAP pArea )
 {
    LETOTABLE * pTable = pArea->pTable;
-   char szData[32];
 
    HB_TRACE(HB_TR_DEBUG, ("letoPack(%p)", pArea));
 
@@ -2386,8 +2385,8 @@ static ERRCODE letoPack( LETOAREAP pArea )
       commonError( pArea, EG_SHARED, EDBF_SHARED, 0, NULL, 0, NULL );
       return FAILURE;
    }
-   sprintf( szData,"pack;%lu;\r\n", pTable->hTable );
-   if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
+
+   if( LetoDbPack( pTable ) ) return FAILURE;
 
    return SELF_GOTOP( ( AREAP ) pArea );
 }
@@ -2513,7 +2512,6 @@ static ERRCODE letoTrans( LETOAREAP pArea, LPDBTRANSINFO pTransInfo )
 static ERRCODE letoZap( LETOAREAP pArea )
 {
    LETOTABLE * pTable = pArea->pTable;
-   char szData[32];
 
    HB_TRACE(HB_TR_DEBUG, ("letoZap(%p)", pArea));
 
@@ -2536,8 +2534,7 @@ static ERRCODE letoZap( LETOAREAP pArea )
       return FAILURE;
    }
 
-   sprintf( szData,"zap;%lu;\r\n", pTable->hTable );
-   if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
+   if( LetoDbZap( pTable ) ) return FAILURE;
 
    return SELF_GOTOP( ( AREAP ) pArea );
 }
@@ -2842,18 +2839,13 @@ static ERRCODE letoOrderListFocus( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
 static ERRCODE letoOrderListRebuild( LETOAREAP pArea )
 {
    LETOTABLE * pTable = pArea->pTable;
-   char szData[32];
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListRebuild(%p)", pArea));
 
    if( pTable->uiUpdated )
       leto_PutRec( pArea, FALSE );
 
-   if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
-      sprintf( szData,"ord;%lu;03;\r\n", pTable->hTable );
-   else
-      sprintf( szData,"ord;03;%lu;\r\n", pTable->hTable );
-   if ( !leto_SendRecv( pArea, szData, 0, 1021 ) ) return FAILURE;
+   if ( LetoDbReindex( pTable ) ) return FAILURE;
 
    return SELF_GOTOP( ( AREAP ) pArea );
 }
