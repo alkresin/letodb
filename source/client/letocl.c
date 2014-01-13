@@ -1,4 +1,4 @@
-/* $Id: letocl.c,v 1.1.2.11 2013/12/27 11:22:03 alkresin Exp $ */
+/* $Id: letocl.c,v 1.1.2.21 2014/01/09 18:36:26 ptsarenko Exp $ */
 
 /*
  * Harbour Project source code:
@@ -80,6 +80,7 @@ static char s_cCentury = 'T';
 static unsigned int s_uiDeleted = 0;
 
 static unsigned int s_bFastAppend = 0;
+static unsigned int s_uiAutOpen = 1;
 
 static void( *pFunc )( void ) = NULL;
 
@@ -221,6 +222,11 @@ HB_EXPORT void LetoSetCdp( const char * szCdp )
 HB_EXPORT void LetoSetDeleted( unsigned int uiDeleted )
 {
    s_uiDeleted = uiDeleted;
+}
+
+HB_EXPORT void LetoSetAutOpen( unsigned int uiAutOpen )
+{
+   s_uiAutOpen = uiAutOpen;
 }
 
 HB_EXPORT void LetoSetModName( char * szModule )
@@ -1316,15 +1322,19 @@ static char * leto_ReadMemoInfo( LETOTABLE * pTable, char * ptr )
    return ptr;
 }
 
-static char * leto_SkipTagInfo( LETOCONNECTION * pConnection, char * ptr, unsigned int uiOrders )
+static char * leto_SkipTagInfo( LETOCONNECTION * pConnection, char * ptr )
 {
-   unsigned int ui;
+   char szData[24];
+   int iOrders, i;
+
+   LetoGetCmdItem( &ptr, szData ); ptr ++;
+   sscanf( szData, "%d" , &iOrders );
 
    if( LetoCheckServerVer( pConnection, 100 ) )
-      uiOrders *= 9;
+      iOrders *= 9;
    else
-      uiOrders *= 6;
-   for( ui = 0; ui < uiOrders; ui++ )
+      iOrders *= 6;
+   for( i = 0; i < iOrders; i++ )
    {
       while( *ptr && *ptr != ';' ) ptr++;
       ptr++;
@@ -1846,7 +1856,10 @@ HB_EXPORT LETOTABLE * LetoDbOpenTable( LETOCONNECTION * pConnection, char * szFi
 
    pTable->pRecord = ( unsigned char * ) malloc( pTable->uiRecordLen+1 );
 
-   ptr = leto_ParseTagInfo( pTable, ptr );
+   if( s_uiAutOpen )
+      ptr = leto_ParseTagInfo( pTable, ptr );
+   else
+      ptr = leto_SkipTagInfo( pConnection, ptr );
 
    leto_ParseRecord( pTable, ptr, 1 );
 
@@ -1962,6 +1975,8 @@ HB_EXPORT unsigned int LetoDbGetField( LETOTABLE * pTable, unsigned int uiIndex,
       uiFldLen = (pTable->pFields+uiIndex)->uiLen;
    else if( !*uiLen || *uiLen > (pTable->pFields+uiIndex)->uiLen )
       *uiLen = uiFldLen = (pTable->pFields+uiIndex)->uiLen;
+   else
+      uiFldLen = *uiLen;
 
    memcpy( szRet, pTable->pRecord + pTable->pFieldOffset[uiIndex], uiFldLen );
    szRet[ uiFldLen ] = '\0';

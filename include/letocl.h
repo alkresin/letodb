@@ -1,4 +1,4 @@
-/* $Id: letocl.h,v 1.1.2.10 2013/12/27 11:22:03 alkresin Exp $ */
+/* $Id: letocl.h,v 1.1.2.16 2014/01/09 18:36:26 ptsarenko Exp $ */
 
 /*
  * Harbour Project source code:
@@ -266,6 +266,7 @@ void LetoSetDateFormat( const char * szDateFormat );
 void LetoSetCentury( char cCentury );
 void LetoSetCdp( const char * szCdp );
 void LetoSetDeleted( unsigned int uiDeleted );
+void LetoSetAutOpen( unsigned int uiAutOpen );
 void LetoSetModName( char * szModule );
 int LetoGetConnectRes( void );
 int LetoGetCmdItem( char ** pptr, char * szDest );

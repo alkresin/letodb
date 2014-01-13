@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.166.2.89 2013/12/27 11:22:03 alkresin Exp $  */
+/*  $Id: leto1.c,v 1.166.2.96 2014/01/09 18:36:26 ptsarenko Exp $  */
 
 /*
  * Harbour Project source code:
@@ -209,6 +209,7 @@ BOOL leto_SetOptions( void )
    LetoSetDateFormat( hb_setGetDateFormat() );
    LetoSetCdp( hb_cdp_page->id );
    LetoSetDeleted( (unsigned int)hb_setGetDeleted() );
+   LetoSetAutOpen( (unsigned int)hb_setGetAutOpen() );
 
    return 1;
 }
@@ -2317,13 +2318,13 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
       }
       if( hb_setGetAutOpen() )
       {
-         //ParseTagInfo( pArea, pTable->szTags );
-         if( hb_setGetAutOrder() )
+         unsigned int uiAutOrder = (unsigned int) hb_setGetAutOrder();
+         if( uiAutOrder )
          {
             pTagInfo = pTable->pTagInfo;
             while( pTagInfo )
             {
-               if( pTagInfo->uiTag == (unsigned int)hb_setGetAutOrder() )
+               if( pTagInfo->uiTag == uiAutOrder )
                {
                   pArea->pTagCurrent = pTagInfo;
                   break;
@@ -4889,6 +4890,11 @@ HB_FUNC( LETO_RECLOCKLIST )
       }
    }
    hb_ret();
+}
+
+HB_FUNC( HB_IPERRORCODE )
+{
+   hb_retni( hb_iperrorcode() );
 }
 
 #ifdef __BM

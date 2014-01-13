@@ -6,6 +6,34 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2014-01-09 20:35 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * removed bAutOpen parameter from LetoDBOpenTable() function,
+      and added LetoSetAutOpen() function
+
+2014-01-08 18:45 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * added parameter bAutOpen into LetoDBOpenTable() function
+    * small fix in LetoDBGetField()
+    + prg-level hb_IPErrorCode() function added
+
+2014-01-05 16:30 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    * New functions added:
+      LetoDbPack(), LetoDbReindex(), LetoDbZap()
+
+2014-01-04 18:50 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * source/client/letocl.c
+    * HB_EXPORT has been added to exported functions
+  + letodyn.hbp
+    + hbp file to build dynamic library letocl.dll ( or .so )
+
 2014-01-04 10:05 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
   * include/letocl.h
   * source/client/leto1.c
