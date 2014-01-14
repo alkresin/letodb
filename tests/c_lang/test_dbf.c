@@ -143,7 +143,7 @@ void main( int argc, char *argv[] )
          printRec( pTable );
 
          printf( "Seek \'Niko\'- " );
-         LetoDbSeek( pTable, "NAME", "Niko", 0, 0 );
+         LetoDbSeek( pTable, "NAME", "Niko", 0, 0, 0 );
          printRec( pTable );
 
          printf( "\r\nClose table - " );

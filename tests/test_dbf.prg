@@ -121,7 +121,8 @@ Field NAME, NUM, INFO, DINFO
    SKIP
    ? "skip", NUM, NAME, DINFO, Iif( Eof(), "- Ok","- Failure" )
 
-   dbCloseAll()
+   //dbCloseAll()
+   USE
    ?
    ? "Press any key to continue..."
    Inkey(0)

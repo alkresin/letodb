@@ -300,7 +300,7 @@ unsigned int LetoDbPutRecord( LETOTABLE * pTable, unsigned int bCommit );
 unsigned int LetoDbPutField( LETOTABLE * pTable, unsigned int uiIndex, char * szValue, unsigned int uiLen );
 unsigned int LetoDbAppend( LETOTABLE * pTable, unsigned int fUnLockAll );
 unsigned int LetoDbOrderCreate( LETOTABLE * pTable, char * szBagName, char * szTag, char * szKey, unsigned char bType, unsigned int uiFlags, char * szFor, char * szWhile, unsigned long ulNext );
-unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int bSoftSeek, unsigned int bFindLast );
+unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int uiKeyLen, unsigned int bSoftSeek, unsigned int bFindLast );
 unsigned int LetoDbClearFilter( LETOTABLE * pTable );
 unsigned int LetoDbSetFilter( LETOTABLE * pTable, char * szFilter );
 unsigned int LetoDbCommit( LETOTABLE * pTable );

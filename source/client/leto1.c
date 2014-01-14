@@ -688,13 +688,13 @@ static ERRCODE letoSeek( LETOAREAP pArea, BOOL bSoftSeek, PHB_ITEM pKey, BOOL bF
    LetoSetDeleted( (unsigned int) hb_setGetDeleted() );
    if( ( cType = leto_ItemType( pKey ) ) != pTagInfo->KeyType )
    {
-      if( LetoDbSeek( pTable, pTagInfo->TagName, NULL, 0, 0 ) )
+      if( LetoDbSeek( pTable, pTagInfo->TagName, NULL, 0, 0, 0 ) )
          return FAILURE;
    }
    else
    {
-      leto_KeyToStr( pArea, szKey, cType, pKey );
-      if( LetoDbSeek( pTable, pTagInfo->TagName, szKey, (unsigned int)bSoftSeek, (unsigned int)bFindLast ) )
+      unsigned int uiKeyLen = leto_KeyToStr( pArea, szKey, cType, pKey );
+      if( LetoDbSeek( pTable, pTagInfo->TagName, szKey, uiKeyLen, (unsigned int)bSoftSeek, (unsigned int)bFindLast ) )
          return FAILURE;
    }
 

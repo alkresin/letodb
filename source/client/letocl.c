@@ -2380,11 +2380,11 @@ HB_EXPORT unsigned int LetoDbSkip( LETOTABLE * pTable, long lToSkip, char * szTa
    return 0;
 }
 
-HB_EXPORT unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int bSoftSeek, unsigned int bFindLast )
+HB_EXPORT unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKey, unsigned int uiKeyLen, unsigned int bSoftSeek, unsigned int bFindLast )
 {
    char szData[LETO_MAX_KEY+LETO_MAX_TAGNAME+56], * pData;
    LETOCONNECTION * pConnection = letoConnPool + pTable->uiConnection;
-   unsigned int ui, uiKeyLen;
+   unsigned int ui, uiLen;
    unsigned long ulLen;
    LETOTAGINFO * pTagInfo = pTable->pTagInfo;
    unsigned int bSeekBuf;
@@ -2393,10 +2393,10 @@ HB_EXPORT unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKe
    //if( pTable->uiUpdated )
    //   leto_PutRec( pArea, FALSE );
 
-   uiKeyLen = strlen( szTag );
-   for( ui=0; ui<uiKeyLen; ui++ )
+   uiLen = strlen( szTag );
+   for( ui=0; ui<uiLen; ui++ )
       szData[ui] = HB_TOLOWER(szTag[ui]);
-   szData[uiKeyLen] = '\0';
+   szData[uiLen] = '\0';
    do
    {
       if( !strcmp( szData, pTagInfo->TagName ) )
@@ -2423,6 +2423,8 @@ HB_EXPORT unsigned int LetoDbSeek( LETOTABLE * pTable, char * szTag, char * szKe
    }
    else
    {
+      if( !uiKeyLen )
+         uiKeyLen = strlen( szKey );
       bSeekBuf = pTagInfo->uiBufSize && ! bSoftSeek && ! bFindLast &&
           ( pTagInfo->KeyType != 'C' || uiKeyLen == pTagInfo->KeySize );
 
