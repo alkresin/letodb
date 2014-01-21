@@ -6,6 +6,26 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2014-01-21 16:45 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  + source/phpclient/letocl.php
+  + tests/php/testleto2.php
+
+2014-01-15 15:00 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * source/client/leto1.c
+    ! Bug fixed in letoSetFilter()
+
+2014-01-15 11:10 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * source/client/leto1.c
+    ! Bug fixed in letoClose()
+
+2014-01-14 16:15 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * include/letocl.h
+  * source/client/leto1.c
+  * source/client/letocl.c
+    ! Bug in seeking fixed ( reported by Itamar M. Lins Jr.)
+  * tests/c_lang/test_dbf.c
+    * The call of LetoDbSeek() changed
+
 2014-01-09 20:35 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
   * include/letocl.h
   * source/client/leto1.c
