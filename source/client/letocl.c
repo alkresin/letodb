@@ -1,4 +1,4 @@
-/* $Id: letocl.c,v 1.1.2.21 2014/01/09 18:36:26 ptsarenko Exp $ */
+/* $Id: letocl.c,v 1.1.2.23 2014/01/15 10:57:57 alkresin Exp $ */
 
 /*
  * Harbour Project source code:
@@ -2535,7 +2535,7 @@ HB_EXPORT unsigned int LetoDbSetFilter( LETOTABLE * pTable, char * szFilter )
 
    if( szFilter && ( ulLen = strlen( szFilter ) ) != 0 )
    {
-      pData = (char*) malloc( ulLen + 24 );
+      pData = (char*) malloc( ulLen + 36 );
       sprintf( pData,"setf;%lu;%s;\r\n", pTable->hTable, szFilter );
 
       if( !leto_SendRecv( pTable, pData, 0, 0 ) )

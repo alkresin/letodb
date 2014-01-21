@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.166.2.96 2014/01/09 18:36:26 ptsarenko Exp $  */
+/*  $Id: leto1.c,v 1.166.2.99 2014/01/15 10:57:57 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -1810,6 +1810,8 @@ static ERRCODE letoClose( LETOAREAP pArea )
       leto_PutRec( pArea, FALSE );
 
    pArea->lpdbPendingRel = NULL;
+   if( pTable )
+      SUPER_CLOSE( ( AREAP ) pArea );
 
    if( pTable->pTagInfo )
    {
@@ -1833,8 +1835,6 @@ static ERRCODE letoClose( LETOAREAP pArea )
          hb_xfree( pArea->szDataFileName );
          pArea->szDataFileName = NULL;
       }
-      if( pTable )
-         SUPER_CLOSE( ( AREAP ) pArea );
       pArea->pTable = NULL;
    }
    else
@@ -3652,7 +3652,7 @@ static ERRCODE letoSetFilter( LETOAREAP pArea, LPDBFILTERINFO pFilterInfo )
          memcpy( pData, hb_itemGetCPtr(pFilterInfo->abFilterText), ulLen );
          pData[ulLen] = '\0';
          uiRes = LetoDbSetFilter( pTable, pData );
-         hb_xfree( pData );
+         free( pData );
          if( uiRes && LetoGetError() != 1000 )
             return FAILURE;
 
