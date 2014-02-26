@@ -6,6 +6,38 @@
    2002-12-01 23:12 UTC+0100 Foo Bar <foo.bar@foobar.org>
 */
 
+2014-02-26 12:45 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * source/client/leto1.c
+    ! letoTrans() was fixed to work correctly with an old sever version
+
+2014-02-25 18:00 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/client/leto1.c
+    * changed letoOrderListAdd behavior: new controlling order is set,
+      only if there was no one.
+  * source/server/letofunc.c
+    * changed leto_ExprGetType() function, if hb_macroGetType()
+      cannot determine a type of expression
+
+2014-02-24 18:00 UTC+0200 Pavel Tsarenko (tpe2/at/mail.ru)
+  * source/server/letofunc.c
+    * added leto_SetUserEnv() into leto_filef() function,
+      for correct codepage translation of filenames.
+
+2014-02-04 12:28 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  * source/client/leto1.c
+    ! Bugs fixed in letoClose() and letoOpen()
+  * readme_rus.txt
+  * readme_pt_br.txt
+  * Readme.txt
+    * doc files updated
+  + bin/letodb.ini
+    + sample ini file has been added, provided by dmajkic
+
+2014-01-23 15:08 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
+  + tests/php
+  + tests/php/testleto1.php
+    + test added for php client module
+
 2014-01-21 16:45 UTC+0300 Alexander Kresin (alex/at/belacy.ru)
   + source/phpclient/letocl.php
   + tests/php/testleto2.php

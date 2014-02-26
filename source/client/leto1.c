@@ -1,4 +1,4 @@
-/*  $Id: leto1.c,v 1.166.2.99 2014/01/15 10:57:57 alkresin Exp $  */
+/*  $Id: leto1.c,v 1.166.2.102 2014/02/26 08:45:34 alkresin Exp $  */
 
 /*
  * Harbour Project source code:
@@ -1813,7 +1813,7 @@ static ERRCODE letoClose( LETOAREAP pArea )
    if( pTable )
       SUPER_CLOSE( ( AREAP ) pArea );
 
-   if( pTable->pTagInfo )
+   if( pTable && pTable->pTagInfo )
    {
       LETOTAGINFO * pTagInfo = pTable->pTagInfo, * pTagNext;
       do
@@ -1827,21 +1827,19 @@ static ERRCODE letoClose( LETOAREAP pArea )
       pTable->pTagInfo = NULL;
    }
 
-   if( !LetoDbCloseTable( pTable ) )
+   if( pTable )
    {
-      /* Free all filenames */
-      if( pArea->szDataFileName )
-      {
-         hb_xfree( pArea->szDataFileName );
-         pArea->szDataFileName = NULL;
-      }
+      if( LetoDbCloseTable( pTable ) )
+         commonError( pArea, EG_SYNTAX, LetoGetError(), 0, NULL, 0, NULL );
       pArea->pTable = NULL;
    }
-   else
+
+   if( pArea->szDataFileName )
    {
-      commonError( pArea, EG_SYNTAX, LetoGetError(), 0, NULL, 0, NULL );
-      return FAILURE;
+      hb_xfree( pArea->szDataFileName );
+      pArea->szDataFileName = NULL;
    }
+
    return SUCCESS;
 }
 
@@ -2267,9 +2265,9 @@ static ERRCODE letoOpen( LETOAREAP pArea, LPDBOPENINFO pOpenInfo )
    if( !pTable )
    {
       if( LetoGetError() == 103 )
-         commonError( pArea, EG_OPEN, 103, 32, ptr, EF_CANDEFAULT, NULL );
+         commonError( pArea, EG_OPEN, 103, 32, pArea->szDataFileName, EF_CANDEFAULT, NULL );
       else
-         commonError( pArea, EG_DATATYPE, 1021, 0, ptr, 0, NULL );
+         commonError( pArea, EG_DATATYPE, 1021, 0, pArea->szDataFileName, 0, NULL );
       return FAILURE;
    }
    pArea->pTable = pTable;
@@ -2477,35 +2475,41 @@ static ERRCODE letoSort( LETOAREAP pArea, LPDBSORTINFO pSortInfo )
 
 static ERRCODE letoTrans( LETOAREAP pArea, LPDBTRANSINFO pTransInfo )
 {
-   LETOAREAP pAreaDst = (LETOAREAP) pTransInfo->lpaDest;
-   ERRCODE fResult;
-   char *pData, *ptr;
-   USHORT uiLen;
 
-   if( !leto_CheckArea( pAreaDst ) ||
-       ( pArea->pTable->uiConnection != pAreaDst->pTable->uiConnection ) ||
-       ( pTransInfo->dbsci.itmCobFor && ! pTransInfo->dbsci.lpstrFor ) ||
-       ( pTransInfo->dbsci.itmCobWhile && ! pTransInfo->dbsci.lpstrWhile ) )
+   if( LetoCheckServerVer( letoConnPool+pArea->pTable->uiConnection, 100 ) )
    {
-      return SUPER_TRANS( (AREAP) pArea, pTransInfo );
+      LETOAREAP pAreaDst = (LETOAREAP) pTransInfo->lpaDest;
+      ERRCODE fResult;
+      char *pData, *ptr;
+      USHORT uiLen;
+
+      if( !leto_CheckArea( pAreaDst ) ||
+          ( pArea->pTable->uiConnection != pAreaDst->pTable->uiConnection ) ||
+          ( pTransInfo->dbsci.itmCobFor && ! pTransInfo->dbsci.lpstrFor ) ||
+          ( pTransInfo->dbsci.itmCobWhile && ! pTransInfo->dbsci.lpstrWhile ) )
+      {
+         return SUPER_TRANS( (AREAP) pArea, pTransInfo );
+      }
+
+      uiLen = 82 + LETO_MAX_TAGNAME +
+                  hb_itemGetCLen( pTransInfo->dbsci.lpstrFor ) +
+                  hb_itemGetCLen( pTransInfo->dbsci.lpstrWhile ) +
+                  pTransInfo->uiItemCount*16;
+
+      pData = hb_xgrab( uiLen );
+
+      strcpy( pData, "trans;");
+
+      ptr = leto_PutTransInfo( pArea, pAreaDst, pTransInfo, pData + 6 );
+
+      sprintf( ptr,"\r\n" );
+
+      fResult = ( leto_SendRecv( pArea, pData, 0, 0 ) ? SUCCESS : FAILURE );
+      hb_xfree( pData );
+      return fResult;
    }
-
-   uiLen = 82 + LETO_MAX_TAGNAME +
-               hb_itemGetCLen( pTransInfo->dbsci.lpstrFor ) +
-               hb_itemGetCLen( pTransInfo->dbsci.lpstrWhile ) +
-               pTransInfo->uiItemCount*16;
-
-   pData = hb_xgrab( uiLen );
-
-   strcpy( pData, "trans;");
-
-   ptr = leto_PutTransInfo( pArea, pAreaDst, pTransInfo, pData + 6 );
-
-   sprintf( ptr,"\r\n" );
-
-   fResult = ( leto_SendRecv( pArea, pData, 0, 0 ) ? SUCCESS : FAILURE );
-   hb_xfree( pData );
-   return fResult;
+   else
+      return SUPER_TRANS( (AREAP) pArea, pTransInfo );
 }
 
 #define  letoTransRec              NULL
@@ -2618,6 +2622,7 @@ static ERRCODE letoOrderListAdd( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
    LETOTAGINFO * pTagInfo;
    unsigned int uiLen;
    int iRcvLen;
+   BOOL bNew = FALSE;
 
    HB_TRACE(HB_TR_DEBUG, ("letoOrderListAdd(%p, %p)", pArea, pOrderInfo));
 
@@ -2641,8 +2646,15 @@ static ERRCODE letoOrderListAdd( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
    {
       if( (uiLen == strlen(pTagInfo->BagName)) && !memcmp( ptr, pTagInfo->BagName, uiLen ) )
       {
-         pArea->pTagCurrent = pTagInfo;
-         return letoGoTop( pArea );
+         if( pArea->pTagCurrent )
+         {
+            return SUCCESS;
+         }
+         else
+         {
+            pArea->pTagCurrent = pTagInfo;
+            return letoGoTop( pArea );
+         }
       }
       pTagInfo = pTagInfo->pNext;
    }
@@ -2660,21 +2672,26 @@ static ERRCODE letoOrderListAdd( LETOAREAP pArea, LPDBORDERINFO pOrderInfo )
       pTagInfo = pTagInfo->pNext;
 
    ptr = leto_ParseTagInfo( pTable, ptr );
-   if( pTagInfo )
-      pArea->pTagCurrent = pTagInfo->pNext;
-   else
-      pArea->pTagCurrent = pTable->pTagInfo;
+   if( ! pArea->pTagCurrent )
+   {
+      if( pTagInfo )
+         pArea->pTagCurrent = pTagInfo->pNext;
+      else
+         pArea->pTagCurrent = pTable->pTagInfo;
+      bNew = TRUE;
+   }
 
    pTagInfo = pTable->pTagInfo;
    while( pTagInfo )
    {
-      leto_CreateKeyExpr( pArea, pTagInfo, pTagInfo->KeyExpr, NULL );
-      if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) )
+      if( ! pTagInfo->pExtra || ! ((LETOTAGEXTRAINFO *)pTagInfo->pExtra)->pKeyItem )
+         leto_CreateKeyExpr( pArea, pTagInfo, pTagInfo->KeyExpr, NULL );
+      if( LetoCheckServerVer( letoConnPool+pTable->uiConnection, 100 ) && ((LETOTAGEXTRAINFO *)pTagInfo->pExtra)->uiFCount == 0 )
          ScanIndexFields( pArea, pTagInfo );
       pTagInfo = pTagInfo->pNext;
    }
 
-   if( (iRcvLen - 4) > (ptr - leto_getRcvBuff()) )
+   if( bNew && (iRcvLen - 4) > (ptr - leto_getRcvBuff()) )
       leto_ParseRec( pArea, ptr, TRUE );
 
    return SUCCESS;
